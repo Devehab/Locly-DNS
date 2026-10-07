@@ -125,6 +125,7 @@ type options struct {
 	keepBinary bool
 	port       int
 	routerPort int
+	newName    string
 	hostsFile  string
 	configDir  string
 }
@@ -326,6 +327,8 @@ func (c *runCtx) registerFlags(fs *flag.FlagSet) {
 			fs.BoolVar(&c.o.open, "open", false, "")
 		case flagRouterPort:
 			fs.IntVar(&c.o.routerPort, "port", 80, "")
+		case flagName:
+			fs.StringVar(&c.o.newName, "name", "", "")
 		case flagNoOpen:
 			fs.BoolVar(&c.o.noOpen, "no-open", false, "")
 		case flagKeepBinary:

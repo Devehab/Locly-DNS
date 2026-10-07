@@ -20,6 +20,9 @@ func TestHostname(t *testing.T) {
 		"svc.home.arpa":   "svc.home.arpa",
 		"123.local":       "123.local",
 		"a-b-c.localhost": "a-b-c.localhost",
+		// Pasted links are accepted.
+		"http://app.local":   "app.local",
+		"https://App.local/": "app.local",
 	}
 	for in, want := range valid {
 		got, err := Hostname(in)
@@ -28,7 +31,7 @@ func TestHostname(t *testing.T) {
 		}
 	}
 	invalid := []string{
-		"", "   ", "http://app.local", "app.local/path", "app.local:3000", "-app.local",
+		"", "   ", "http://app.local/page", "app.local/path", "app.local:3000", "-app.local",
 		"app-.local", "app..local", "app_x.local", "ap p.local", "émoji.local",
 		strings.Repeat("a", 64) + ".local", strings.Repeat("a.", 127) + "local",
 	}
@@ -89,6 +92,14 @@ func TestAddress(t *testing.T) {
 		{"::1", "::1", 0},
 		{"fd00::5", "fd00::5", 0},
 		{"::ffff:127.0.0.1", "127.0.0.1", 0},
+		// Pasted links and localhost.
+		{"http://127.0.0.1:7861", "127.0.0.1", 7861},
+		{"https://127.0.0.1:7861/", "127.0.0.1", 7861},
+		{" HTTP://192.168.1.60:8123// ", "192.168.1.60", 8123},
+		{"http://[::1]:8080/", "::1", 8080},
+		{"localhost:3000", "127.0.0.1", 3000},
+		{"http://LocalHost:5173/", "127.0.0.1", 5173},
+		{"localhost", "127.0.0.1", 0},
 	}
 	for _, tt := range tests {
 		ip, port, err := Address(tt.in)
@@ -101,15 +112,16 @@ func TestAddress(t *testing.T) {
 		}
 	}
 	bad := map[string]string{
-		"":                      "empty",
-		"localhost:3000":        "not a hostname",
-		"app.local":             "not a hostname",
-		"127.0.0.1:0":           "port 0",
-		"127.0.0.1:70000":       "bad port",
-		"127.0.0.1:abc":         "bad port",
-		"http://127.0.0.1:3000": "scheme",
-		"999.1.1.1":             "invalid",
-		"127.0.0.1:3000:1":      "invalid",
+		"":                          "empty",
+		"app.local":                 "not a hostname",
+		"127.0.0.1:0":               "port 0",
+		"127.0.0.1:70000":           "bad port",
+		"127.0.0.1:abc":             "bad port",
+		"http://127.0.0.1:3000/app": "path",
+		"127.0.0.1:3000/?x=1":       "path",
+		"ftp://127.0.0.1":           "path",
+		"999.1.1.1":                 "invalid",
+		"127.0.0.1:3000:1":          "invalid",
 	}
 	for in, want := range bad {
 		_, _, err := Address(in)

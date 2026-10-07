@@ -10,6 +10,7 @@ import (
 
 type fakeRouter struct {
 	installed, outdated, running bool
+	canManage                    bool
 	version                      string // of the running router; default: this version
 	enableErr                    error
 	enabled, disabled            int
@@ -36,6 +37,8 @@ func (f *fakeRouter) Disable() error {
 	f.installed, f.outdated, f.running = false, false, false
 	return nil
 }
+
+func (f *fakeRouter) CanManage() bool { return f.canManage }
 
 func (f *fakeRouter) Running() (bool, string) {
 	if !f.running {
@@ -157,5 +160,34 @@ func TestRouterUnknownAction(t *testing.T) {
 	h := newHarness(t)
 	if r := h.run([]string{"router", "explode"}); r.code != ExitUsage {
 		t.Fatalf("router explode: %+v", r)
+	}
+}
+
+func TestRouterEnableNamesTheDashboard(t *testing.T) {
+	h := newHarness(t)
+	fr := &fakeRouter{}
+	r := h.run([]string{"router", "enable"}, withRouter(fr))
+	if r.code != 0 || !strings.Contains(r.stdout, "http://localdns.local") {
+		t.Fatalf("router enable:\n%s", r.stdout)
+	}
+	e := h.run([]string{"list", "--json"}, withRouter(fr)).json(t)["entries"].([]any)
+	if len(e) != 1 {
+		t.Fatalf("entries = %v", e)
+	}
+	if m := e[0].(map[string]any); m["hostname"] != "localdns.local" || m["address"] != "127.0.0.1:7357" {
+		t.Fatalf("dashboard entry = %v", m)
+	}
+	// Enabling again is fine, and a name the user mapped elsewhere is kept.
+	h.run([]string{"edit", "localdns.local", "127.0.0.1:9999"}, withRouter(fr))
+	if v := h.run([]string{"router", "enable", "--json"}, withRouter(fr)).json(t); v["dashboard_url"] != nil {
+		t.Fatalf("router enable --json = %v", v)
+	}
+	if v := h.run([]string{"list", "--json"}, withRouter(fr)).json(t); v["entries"].([]any)[0].(map[string]any)["address"] != "127.0.0.1:9999" {
+		t.Fatalf("the user's mapping was replaced: %v", v)
+	}
+
+	r = h.run([]string{"router", "disable"}, withRouter(fr))
+	if r.code != 0 || !strings.Contains(r.stdout, "http://127.0.0.1:7357") || !strings.Contains(r.stdout, "localdns router enable") {
+		t.Fatalf("router disable should say where the dashboard is now:\n%s", r.stdout)
 	}
 }

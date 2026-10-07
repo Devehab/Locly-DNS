@@ -26,6 +26,7 @@ const (
 	flagNoOpen
 	flagRouterPort
 	flagKeepBinary
+	flagName
 )
 
 type flagDoc struct {
@@ -42,6 +43,7 @@ var flagDocs = map[int]flagDoc{
 	flagNoOpen:     {"--no-open", "Don't open your browser automatically"},
 	flagRouterPort: {"--port <port>", "Port for `router run` (default 80, which is what makes URLs port-free)"},
 	flagKeepBinary: {"--keep-binary", "Remove entries and configuration but keep the localdns binary"},
+	flagName:       {"--name <hostname>", "Rename the entry, e.g. --name web.local"},
 }
 
 var commonFlagDocs = []flagDoc{
@@ -89,6 +91,25 @@ func init() {
 				"localdns add app.local 127.0.0.1:3000 --json",
 			},
 			minArgs: 2, maxArgs: 2, run: runAdd,
+		},
+		{
+			name: "edit", summary: "Change a hostname or its address", listed: true,
+			usage: "localdns edit <hostname> [<ip[:port]>] [--name <new-hostname>]",
+			long: "Change where a hostname points, rename it, or both, in one step. The entry\n" +
+				"keeps its place; nothing else in the hosts file changes. A pasted link such\n" +
+				"as http://127.0.0.1:4000/ is accepted as the address.",
+			args: [][2]string{
+				{"hostname", "The hostname to change, e.g. app.local"},
+				{"ip[:port]", "Optional new address, e.g. 127.0.0.1:4000"},
+			},
+			flags: []int{flagName, flagNoElevate},
+			examples: []string{
+				"localdns edit app.local 127.0.0.1:4000",
+				"localdns edit app.local --name web.local",
+				"localdns edit app.local 127.0.0.1:5173 --name web.local",
+				"localdns edit app.local 127.0.0.1:4000 --json",
+			},
+			minArgs: 1, maxArgs: 2, run: runEdit,
 		},
 		{
 			name: "list", summary: "List hostnames", listed: true,
@@ -271,6 +292,34 @@ func (c *runCtx) printEntry(e core.Entry) {
 		p.println()
 		p.println(p.dim("Tip: to open " + "http://" + e.Hostname + " without the port, run: localdns router enable"))
 	}
+}
+
+// ---- edit ----
+
+func runEdit(c *runCtx) int {
+	address := ""
+	if len(c.args) == 2 {
+		address = c.args[1]
+	}
+	res, err := c.manager().Edit(c.args[0], c.o.newName, address)
+	if err != nil {
+		if code, ok := c.tryElevate(err); ok {
+			return code
+		}
+		return c.fail(err)
+	}
+	res.Entry = c.withShortURLs([]core.Entry{res.Entry})[0]
+	if c.o.json {
+		writeJSON(c.env.Stdout, res)
+		return ExitOK
+	}
+	if res.Action == core.ActionUnchanged {
+		c.out.println(c.out.ok() + " Nothing to change")
+	} else {
+		c.out.println(c.out.ok() + " Updated successfully")
+	}
+	c.printEntry(res.Entry)
+	return ExitOK
 }
 
 // ---- list ----
@@ -523,7 +572,8 @@ func runUI(c *runCtx) int {
 		return c.fail(&core.Error{Code: codePortInUse, Message: fmt.Sprintf("cannot listen on %s: %v", ui.URL(c.o.port), err), Hint: hint})
 	}
 	portNum := ln.Addr().(*net.TCPAddr).Port
-	url := ui.URL(portNum)
+	direct := ui.URL(portNum)
+	url := c.dashboardURL(portNum)
 
 	readOnlyHint := ""
 	if !writable {
@@ -533,14 +583,14 @@ func runUI(c *runCtx) int {
 		}
 	}
 	handler, err := ui.NewHandler(m, ui.Options{Port: portNum, Version: version.Version, ReadOnlyHint: readOnlyHint,
-		ShortURL: c.shortURLFunc()})
+		ShortURL: c.shortURLFunc(), Router: c.uiRouter()})
 	if err != nil {
 		_ = ln.Close()
 		return c.fail(err)
 	}
 
 	if c.o.json {
-		writeJSON(c.env.Stdout, map[string]any{"url": url, "writable": writable, "hosts_file": c.hostsPath})
+		writeJSON(c.env.Stdout, map[string]any{"url": url, "direct_url": direct, "writable": writable, "hosts_file": c.hostsPath})
 	} else {
 		p := c.out
 		p.println(p.ok() + " LocalDNS UI running")
@@ -548,6 +598,10 @@ func runUI(c *runCtx) int {
 		p.println("Open:")
 		p.println(url)
 		p.println()
+		if url != direct {
+			p.println(p.dim("Also at " + direct + " (works even when port-free URLs are off)"))
+			p.println()
+		}
 		if openBrowser {
 			p.println(p.dim("Opening it in your browser…"))
 			p.println()
@@ -594,7 +648,7 @@ func (c *runCtx) openWhenReady(port int, stop <-chan struct{}) {
 		}
 		if ui.Probe(port) {
 			if c.env.OpenBrowser != nil {
-				_ = c.env.OpenBrowser(ui.URL(port))
+				_ = c.env.OpenBrowser(c.dashboardURL(port))
 			}
 			return
 		}

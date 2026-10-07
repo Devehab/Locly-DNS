@@ -1,12 +1,16 @@
 name: Deploy website
 
-# Publishes docs/ (the landing page) to GitHub Pages.
+# Publishes docs/ (the landing page) to GitHub Pages, plus the terminal guide
+# at /guide/. The guide is the same file the dashboard serves at /guide, so
+# it is copied from internal/ui/static rather than kept twice.
 # Repository setting required once: Settings → Pages → Source: "GitHub Actions".
 
 on:
   push:
     paths:
       - "docs/**"
+      - "internal/ui/static/guide.*"
+      - "internal/ui/static/style.css"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -32,18 +36,24 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Check the site
+      - name: Build the site
         run: |
           test -f docs/index.html
           for f in assets/site.css assets/site.js assets/motion.js assets/img/logo.svg assets/img/og.png; do
             test -f "docs/$f" || { echo "missing docs/$f"; exit 1; }
           done
+          mkdir -p _site
+          cp -R docs/. _site/
+          mkdir -p _site/guide/assets
+          cp internal/ui/static/guide.html _site/guide/index.html
+          cp internal/ui/static/style.css internal/ui/static/guide.css internal/ui/static/guide.js \
+            internal/ui/static/favicon.svg _site/guide/assets/
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs
+          path: _site
 
       - id: deployment
         uses: actions/deploy-pages@v4

@@ -79,6 +79,7 @@
         <a href="#examples"><span class="en">Examples</span><span class="ar">أمثلة</span></a>
         <a href="#install"><span class="en">Install</span><span class="ar">التثبيت</span></a>
         <a href="#commands"><span class="en">Commands</span><span class="ar">الأوامر</span></a>
+        <a href="guide/"><span class="en">Terminal guide</span><span class="ar">دليل الطرفية</span></a>
         <a href="#agents"><span class="en">AI agents</span><span class="ar">وكلاء AI</span></a>
         <a href="#security"><span class="en">Security</span><span class="ar">الأمان</span></a>
       </nav>
@@ -393,7 +394,7 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>         http://h
           <article class="ease-card">
             <span class="ease-num">3</span>
             <h4><span class="en">Change or remove</span><span class="ar">عدّل أو احذف</span></h4>
-            <p><span class="en">Point a name somewhere new with <code dir="ltr">--force</code>, or remove it. Deleting always asks first, and nothing else on your system is touched.</span><span class="ar">وجّه الاسم إلى عنوان جديد بـ <code dir="ltr">--force</code>، أو احذفه. الحذف يطلب التأكيد دائمًا، ولا يُمس أي شيء آخر في نظامك.</span></p>
+            <p><span class="en">Point a name somewhere new or rename it with <code dir="ltr">localdns edit</code> (or the Edit button), or remove it. Deleting always asks first, and nothing else on your system is touched.</span><span class="ar">وجّه الاسم إلى عنوان جديد أو غيّر اسمه بالأمر <code dir="ltr">localdns edit</code> (أو زر Edit)، أو احذفه. الحذف يطلب التأكيد دائمًا، ولا يُمس أي شيء آخر في نظامك.</span></p>
             <div class="cmd small" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns remove app.local</code></div>
           </article>
         </div>
@@ -546,7 +547,7 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>         http://h
           </article>
           <article class="example">
             <h3><span class="en">Change an existing name</span><span class="ar">تعديل اسم موجود</span></h3>
-            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add app.local 127.0.0.1:4000 --force</code><button type="button" class="copy" data-copy="localdns add app.local 127.0.0.1:4000 --force"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns edit app.local 127.0.0.1:4000</code><button type="button" class="copy" data-copy="localdns edit app.local 127.0.0.1:4000"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
             <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg><code dir="ltr">Updated successfully</code></p>
           </article>
           <article class="example">
@@ -670,8 +671,8 @@ Remove app.local → 127.0.0.1:3000?
       <div class="container">
         <div class="section-head">
           <p class="kicker"><span class="en">Command guide</span><span class="ar">دليل الأوامر</span></p>
-          <h2><span class="en">Eight commands. That's the whole tool.</span><span class="ar">ثمانية أوامر. هذه هي الأداة كلها.</span></h2>
-          <p><span class="en">Every command supports <code dir="ltr">--help</code> and <code dir="ltr">--json</code>. Start with <code dir="ltr">localdns info</code>.</span><span class="ar">كل أمر يدعم <code dir="ltr">--help</code> و<code dir="ltr">--json</code>. ابدأ بالأمر <code dir="ltr">localdns info</code>.</span></p>
+          <h2><span class="en">A handful of commands. That's the whole tool.</span><span class="ar">أوامر قليلة. هذه هي الأداة كلها.</span></h2>
+          <p><span class="en">Every command supports <code dir="ltr">--help</code> and <code dir="ltr">--json</code>. Start with <code dir="ltr">localdns info</code>, or read the <a href="guide/">full terminal guide</a> (English and Arabic).</span><span class="ar">كل أمر يدعم <code dir="ltr">--help</code> و<code dir="ltr">--json</code>. ابدأ بالأمر <code dir="ltr">localdns info</code>، أو اقرأ <a href="guide/">دليل الطرفية الكامل</a> (بالعربية والإنجليزية).</span></p>
         </div>
 
         <div class="table-wrap">
@@ -684,6 +685,7 @@ Remove app.local → 127.0.0.1:3000?
             </thead>
             <tbody>
               <tr><td dir="ltr"><a href="#cmd-add"><code>localdns add &lt;hostname&gt; &lt;ip[:port]&gt;</code></a></td><td><span class="en">Add a hostname</span><span class="ar">إضافة اسم</span></td></tr>
+              <tr><td dir="ltr"><a href="guide/#edit"><code>localdns edit &lt;hostname&gt; [ip[:port]] [--name new]</code></a></td><td><span class="en">Change an address, rename, or both</span><span class="ar">تغيير العنوان أو الاسم أو الاثنين</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-list"><code>localdns list</code></a></td><td><span class="en">List hostnames with address and status</span><span class="ar">عرض الأسماء مع العنوان والحالة</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-remove"><code>localdns remove &lt;hostname&gt;</code></a></td><td><span class="en">Remove a hostname</span><span class="ar">حذف اسم</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-status"><code>localdns status</code></a></td><td><span class="en">Check files, write access and entries</span><span class="ar">فحص الملفات وصلاحية الكتابة والمدخلات</span></td></tr>
@@ -758,7 +760,7 @@ Everything looks good.</code></pre>
 
           <article class="cmd-card" id="cmd-ui">
             <header><h3 dir="ltr">ui</h3><code class="usage" dir="ltr">localdns ui</code></header>
-            <p><span class="en">Starts the web interface on <code dir="ltr">http://127.0.0.1:7357</code> (localhost only) and opens it in your browser. Because adding and deleting edits <code dir="ltr">/etc/hosts</code>, it asks for your password (sudo) on macOS and Linux; only the UI runs with sudo, and Ctrl+C stops everything.</span><span class="ar">يشغّل واجهة الويب على <code dir="ltr">http://127.0.0.1:7357</code> (على localhost فقط) ويفتحها في متصفحك. ولأن الإضافة والحذف يعدّلان <code dir="ltr">/etc/hosts</code>، يطلب كلمة المرور (sudo) على macOS وLinux؛ الواجهة وحدها تعمل بـ sudo، و Ctrl+C يوقف كل شيء.</span></p>
+            <p><span class="en">Starts the dashboard and opens it in your browser at <code dir="ltr">http://localdns.local</code>, so there is no IP to remember (it is also always at <code dir="ltr">http://127.0.0.1:7357</code>). Add, edit and delete names, paste links as they are, and switch port-free URLs on or off. Because changes edit <code dir="ltr">/etc/hosts</code>, it asks for your password (sudo) on macOS and Linux; only the dashboard runs with sudo, and Ctrl+C stops everything.</span><span class="ar">يشغّل لوحة التحكم ويفتحها في متصفحك على <code dir="ltr">http://localdns.local</code>، فلا حاجة لحفظ أي عنوان IP (وهي متاحة دائمًا أيضًا على <code dir="ltr">http://127.0.0.1:7357</code>). أضف الأسماء وعدّلها واحذفها، والصق الروابط كما هي، وفعّل الروابط بدون منفذ أو أوقفها. ولأن التغييرات تعدّل <code dir="ltr">/etc/hosts</code>، يطلب كلمة المرور (sudo) على macOS وLinux؛ لوحة التحكم وحدها تعمل بـ sudo، و Ctrl+C يوقف كل شيء.</span></p>
             <dl class="flags">
               <div><dt dir="ltr">--port &lt;port&gt;</dt><dd><span class="en">Use another port (default 7357)</span><span class="ar">استخدام منفذ آخر (الافتراضي 7357)</span></dd></div>
               <div><dt dir="ltr">--no-open</dt><dd><span class="en">Don't open the browser</span><span class="ar">بدون فتح المتصفح تلقائيًا</span></dd></div>
@@ -771,7 +773,7 @@ localdns ui --no-elevate</code></pre>
 
           <article class="cmd-card" id="cmd-router">
             <header><h3 dir="ltr">router</h3><code class="usage" dir="ltr">localdns router [enable|disable]</code></header>
-            <p><span class="en">The hosts file can't store ports, so <code dir="ltr">http://app.local</code> would go to port 80. The router listens there, on 127.0.0.1 only, and forwards each of your names to its port. It never runs as root (on macOS, the system opens the port and hands it to the router running as the restricted <code dir="ltr">nobody</code> user), starts on its own, and serves only names you added. The installer turns it on.</span><span class="ar">ملف hosts لا يحفظ المنافذ، لذا فإن <code dir="ltr">http://app.local</code> يذهب إلى المنفذ 80. الموجّه يستمع هناك، على 127.0.0.1 فقط، ويحوّل كل اسم من أسمائك إلى منفذه. لا يعمل أبدًا بصلاحيات root (على macOS يفتح النظام المنفذ ويسلّمه للموجّه الذي يعمل بصلاحيات المستخدم المقيّد <code dir="ltr">nobody</code>)، ويبدأ تلقائيًا، ولا يخدم إلا الأسماء التي أضفتها. المثبِّت يفعّله تلقائيًا.</span></p>
+            <p><span class="en">The hosts file can't store ports, so <code dir="ltr">http://app.local</code> would go to port 80. The router listens there, on 127.0.0.1 only, and forwards each of your names to its port. It never runs as root (on macOS, the system opens the port and hands it to the router running as the restricted <code dir="ltr">nobody</code> user), starts on its own, and serves only names you added. The installer turns it on. Turn it off with the switch in the dashboard or <code dir="ltr">localdns router disable</code>; the dashboard then opens only at <code dir="ltr">http://127.0.0.1:7357</code>, which is where you turn it back on.</span><span class="ar">ملف hosts لا يحفظ المنافذ، لذا فإن <code dir="ltr">http://app.local</code> يذهب إلى المنفذ 80. الموجّه يستمع هناك، على 127.0.0.1 فقط، ويحوّل كل اسم من أسمائك إلى منفذه. لا يعمل أبدًا بصلاحيات root (على macOS يفتح النظام المنفذ ويسلّمه للموجّه الذي يعمل بصلاحيات المستخدم المقيّد <code dir="ltr">nobody</code>)، ويبدأ تلقائيًا، ولا يخدم إلا الأسماء التي أضفتها. المثبِّت يفعّله تلقائيًا. أوقفه من المفتاح في لوحة التحكم أو بالأمر <code dir="ltr">localdns router disable</code>؛ وعندها تُفتح لوحة التحكم فقط على <code dir="ltr">http://127.0.0.1:7357</code>، ومنها تعيد تفعيله.</span></p>
             <dl class="flags">
               <div><dt dir="ltr">enable</dt><dd><span class="en">Start it now and on its own from then on</span><span class="ar">تشغيله الآن وتلقائيًا بعد ذلك</span></dd></div>
               <div><dt dir="ltr">disable</dt><dd><span class="en">Stop and remove it</span><span class="ar">إيقافه وإزالته</span></dd></div>
@@ -1009,6 +1011,7 @@ localdns add --help</code></pre>
       <nav class="footer-links" aria-label="Footer">
         <a href="https://github.com/Devehab/Locly-DNS">GitHub</a>
         <a href="https://github.com/Devehab/Locly-DNS/releases"><span class="en">Releases</span><span class="ar">الإصدارات</span></a>
+        <a href="guide/"><span class="en">Terminal guide</span><span class="ar">دليل الطرفية</span></a>
         <a href="https://github.com/Devehab/Locly-DNS#readme"><span class="en">Documentation</span><span class="ar">التوثيق</span></a>
         <a href="https://github.com/Devehab/Locly-DNS/security/policy"><span class="en">Security policy</span><span class="ar">سياسة الأمان</span></a>
       </nav>

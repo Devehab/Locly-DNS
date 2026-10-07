@@ -56,7 +56,7 @@ func invalid(hint, format string, args ...any) error {
 // LocalHostname for that.
 func Hostname(name string) (string, error) {
 	raw := name
-	name = strings.TrimSpace(name)
+	name = TrimURL(name)
 	name = strings.TrimSuffix(name, ".")
 	name = strings.ToLower(name)
 
@@ -64,7 +64,7 @@ func Hostname(name string) (string, error) {
 		return "", invalid("Example: localdns add app.local 127.0.0.1:3000", "hostname is empty")
 	}
 	if strings.Contains(name, "://") || strings.Contains(name, "/") {
-		return "", invalid("Use just the hostname, e.g. app.local", "invalid hostname %q: remove the scheme or path", raw)
+		return "", invalid("Use just the hostname, e.g. app.local", "invalid hostname %q: remove the path", raw)
 	}
 	if strings.Contains(name, ":") {
 		return "", invalid("The port belongs to the address: localdns add app.local 127.0.0.1:3000",
@@ -137,17 +137,41 @@ func SuffixList() string {
 	return strings.Join(parts, ", ")
 }
 
+// TrimURL accepts a pasted link: it removes surrounding spaces, an http:// or
+// https:// scheme and trailing slashes, so "http://127.0.0.1:3000/" becomes
+// "127.0.0.1:3000". Anything else, such as a path, is left for the caller to
+// reject.
+func TrimURL(s string) string {
+	s = strings.TrimSpace(s)
+	lower := strings.ToLower(s)
+	for _, scheme := range []string{"http://", "https://"} {
+		if strings.HasPrefix(lower, scheme) {
+			s = s[len(scheme):]
+			break
+		}
+	}
+	return strings.TrimRight(s, "/")
+}
+
 // Address parses "IP" or "IP:PORT" (IPv6 as "[::1]:3000"). Port is 0 when
-// absent. It does not apply the local-IP policy; see LocalAddress.
+// absent. A pasted link such as "http://127.0.0.1:3000/" is accepted, and
+// "localhost" means 127.0.0.1. It does not apply the local-IP policy; see
+// LocalIP.
 func Address(s string) (netip.Addr, uint16, error) {
 	raw := s
-	s = strings.TrimSpace(s)
+	s = TrimURL(s)
 	if s == "" {
 		return netip.Addr{}, 0, invalid("Example: 127.0.0.1:3000 or 192.168.1.60", "address is empty")
 	}
-	if strings.Contains(s, "://") || strings.Contains(s, "/") {
-		return netip.Addr{}, 0, invalid("Use just the IP and optional port, e.g. 127.0.0.1:3000",
-			"invalid address %q: remove the scheme or path", raw)
+	if strings.Contains(s, "://") || strings.Contains(s, "/") || strings.ContainsAny(s, "?#") {
+		return netip.Addr{}, 0, invalid("LocalDNS maps a name to an IP and port, not to a page. Use e.g. "+
+			"127.0.0.1:3000, then open the page under the name: http://app.local/page",
+			"invalid address %q: remove the path", raw)
+	}
+	if strings.EqualFold(s, "localhost") {
+		s = "127.0.0.1"
+	} else if len(s) > len("localhost:") && strings.EqualFold(s[:len("localhost:")], "localhost:") {
+		s = "127.0.0.1" + s[len("localhost"):]
 	}
 
 	if ap, err := netip.ParseAddrPort(s); err == nil {

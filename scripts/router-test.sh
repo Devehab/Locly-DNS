@@ -110,6 +110,23 @@ python3 -I -c 'import json,sys; e=json.load(open(sys.argv[1]))["entries"][0]; as
 	fail "list --json has no short_url"
 "$BIN" router
 
+step "the dashboard opens by name: http://localdns.local"
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 3 -H "Host: localdns.local" http://127.0.0.1/)
+[ "$code" = 502 ] || fail "localdns.local without a running dashboard answered $code, want 502"
+# The log belongs to this user, so it is opened before sudo on purpose.
+# shellcheck disable=SC2024
+sudo "$BIN" ui --no-open "${paths[@]}" >"$SANDBOX/ui.log" 2>&1 &
+ui=$!
+for _ in $(seq 1 50); do
+	curl -fsS -m 2 -o /dev/null http://127.0.0.1:7357/healthz && break
+	sleep 0.2
+done
+page=$(curl -fsS -m 3 -H "Host: localdns.local" http://127.0.0.1/) || fail "http://localdns.local did not reach the dashboard"
+grep -q "<title>LocalDNS</title>" <<<"$page" || fail "unexpected page at http://localdns.local"
+grep -q "http://localdns.local" "$SANDBOX/ui.log" || fail "localdns ui did not print http://localdns.local"
+echo "✓ http://localdns.local → dashboard"
+sudo kill "$ui" 2>/dev/null || true
+
 step "sudo localdns router disable"
 sudo "$BIN" router disable
 sleep 1

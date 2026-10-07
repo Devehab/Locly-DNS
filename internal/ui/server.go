@@ -4,7 +4,9 @@
 // The server only ever listens on the loopback interface. It also defends
 // against other websites talking to it through the browser:
 //   - the Host header must be 127.0.0.1:<port> or localhost:<port>, which
-//     defeats DNS-rebinding attacks;
+//     defeats DNS-rebinding attacks. localdns.local (the dashboard's name) is
+//     accepted only while the hosts file maps it to this server, because then
+//     no other machine can answer for that name;
 //   - every API call must carry a per-process random token that is embedded
 //     in the page and unreadable by other origins (CSRF protection);
 //   - cross-origin requests are rejected and no CORS headers are sent;
@@ -24,8 +26,10 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/devehab/locly-dns/internal/core"
@@ -35,7 +39,7 @@ import (
 const LoopbackAddr = "127.0.0.1"
 
 // DefaultPort is the default UI port.
-const DefaultPort = 7357
+const DefaultPort = core.DashboardPort
 
 // TokenHeader carries the per-process API token.
 const TokenHeader = "X-LocalDNS-Token" //nolint:gosec // G101: a header name, not a credential
@@ -57,6 +61,24 @@ type Options struct {
 	// ShortURL returns an entry's port-free URL (http://app.local) when the
 	// LocalDNS router serves it, or "". Nil means never.
 	ShortURL func(core.Entry) string
+	// Router lets the dashboard show and switch port-free URLs. Nil hides
+	// the switch.
+	Router RouterSwitch
+}
+
+// RouterSwitch turns the port-free router on and off for the dashboard.
+type RouterSwitch interface {
+	RouterStatus() RouterStatus
+	EnableRouter() error
+	DisableRouter() error
+}
+
+// RouterStatus describes the port-free router.
+type RouterStatus struct {
+	Running   bool `json:"running"`
+	Installed bool `json:"installed"`
+	// CanChange reports whether this dashboard has the rights to switch it.
+	CanChange bool `json:"can_change"`
 }
 
 type asset struct {
@@ -69,7 +91,13 @@ type server struct {
 	opts   Options
 	token  string
 	index  *template.Template
+	guide  []byte
 	assets map[string]asset
+
+	mu        sync.Mutex
+	mapped    bool // the hosts file maps DashboardHostname to this server
+	mappedAt  time.Time
+	routerErr string // last error from switching the router off
 }
 
 // NewHandler returns the UI's HTTP handler.
@@ -96,28 +124,55 @@ func NewHandler(m *core.Manager, opts Options) (http.Handler, error) {
 		}
 		assets[name] = asset{contentType: ctype, data: data}
 	}
-	s := &server{m: m, opts: opts, token: token, index: index, assets: assets}
+	guide, err := fs.ReadFile(staticFS, "static/guide.html")
+	if err != nil {
+		return nil, err
+	}
+	s := &server{m: m, opts: opts, token: token, index: index, guide: guide, assets: assets}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.serveIndex)
+	mux.HandleFunc("GET /guide", s.serveGuide)
 	mux.HandleFunc("GET /assets/{file}", s.serveAsset)
 	mux.HandleFunc("GET /healthz", s.serveHealth)
 	mux.HandleFunc("GET /api/status", s.api(s.getStatus))
 	mux.HandleFunc("GET /api/entries", s.api(s.listEntries))
 	mux.HandleFunc("POST /api/entries", s.api(s.addEntry))
+	mux.HandleFunc("PUT /api/entries/{hostname}", s.api(s.editEntry))
 	mux.HandleFunc("DELETE /api/entries/{hostname}", s.api(s.removeEntry))
+	mux.HandleFunc("GET /api/router", s.api(s.getRouter))
+	mux.HandleFunc("POST /api/router", s.api(s.setRouter))
 	return s.secure(mux), nil
 }
 
 // allowedHost reports whether host (a Host header or Origin host) names this
-// server via a loopback name.
+// server: via a loopback name, or via the dashboard's own name while the
+// hosts file maps it here (directly or through the router on port 80).
 func (s *server) allowedHost(host string) bool {
 	port := strconv.Itoa(s.opts.Port)
 	switch host {
 	case LoopbackAddr + ":" + port, "localhost:" + port:
 		return true
+	case core.DashboardHostname, core.DashboardHostname + ":80", core.DashboardHostname + ":" + port:
+		return s.dashboardMapped()
 	}
 	return false
+}
+
+// dashboardMapped reports whether the hosts file maps DashboardHostname to
+// this server. It is checked at most every two seconds.
+func (s *server) dashboardMapped() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if time.Since(s.mappedAt) < 2*time.Second {
+		return s.mapped
+	}
+	e, err := s.m.Get(core.DashboardHostname)
+	ip, perr := netip.ParseAddr(e.IP)
+	s.mapped = err == nil && perr == nil && ip.IsLoopback() && e.Status == core.StatusActive &&
+		e.Port != nil && int(*e.Port) == s.opts.Port
+	s.mappedAt = time.Now()
+	return s.mapped
 }
 
 func (s *server) secure(next http.Handler) http.Handler {
@@ -160,7 +215,8 @@ func (s *server) api(fn func(*http.Request) (int, any)) http.HandlerFunc {
 				"Reload the LocalDNS page."))
 			return
 		}
-		if r.Method == http.MethodPost && !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		if (r.Method == http.MethodPost || r.Method == http.MethodPut) &&
+			!strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 			writeJSON(w, http.StatusUnsupportedMediaType, errorBody("invalid_input", "expected a JSON body", ""))
 			return
 		}
@@ -180,9 +236,16 @@ func (s *server) serveIndex(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
+func (s *server) serveGuide(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(s.guide)
+}
+
 var assetTypes = map[string]string{
 	"app.js":      "text/javascript; charset=utf-8",
+	"guide.js":    "text/javascript; charset=utf-8",
 	"style.css":   "text/css; charset=utf-8",
+	"guide.css":   "text/css; charset=utf-8",
 	"favicon.svg": "image/svg+xml",
 }
 
@@ -254,6 +317,102 @@ func (s *server) addEntry(r *http.Request) (int, any) {
 		status = http.StatusCreated
 	}
 	return status, res
+}
+
+type editRequest struct {
+	Hostname string `json:"hostname"`
+	Address  string `json:"address"`
+}
+
+func (s *server) editEntry(r *http.Request) (int, any) {
+	var req editRequest
+	dec := json.NewDecoder(http.MaxBytesReader(nil, r.Body, 16<<10))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		return http.StatusBadRequest, errorBody("invalid_input", "invalid JSON body: "+err.Error(), "")
+	}
+	res, err := s.m.Edit(r.PathValue("hostname"), req.Hostname, req.Address)
+	if err != nil {
+		return s.errorResponse(err)
+	}
+	return http.StatusOK, res
+}
+
+type routerResponse struct {
+	Supported bool `json:"supported"`
+	RouterStatus
+	// DashboardURL is the dashboard's port-free address, when it works.
+	DashboardURL string `json:"dashboard_url,omitempty"`
+	// DirectURL always works while the dashboard runs, router or not.
+	DirectURL string `json:"direct_url"`
+	LastError string `json:"last_error,omitempty"`
+}
+
+func (s *server) routerState() routerResponse {
+	resp := routerResponse{DirectURL: URL(s.opts.Port)}
+	if s.opts.Router == nil {
+		return resp
+	}
+	resp.Supported = true
+	resp.RouterStatus = s.opts.Router.RouterStatus()
+	if resp.Running && s.dashboardMapped() {
+		resp.DashboardURL = "http://" + core.DashboardHostname
+	}
+	s.mu.Lock()
+	resp.LastError = s.routerErr
+	s.mu.Unlock()
+	return resp
+}
+
+func (s *server) getRouter(*http.Request) (int, any) {
+	return http.StatusOK, s.routerState()
+}
+
+// routerOffDelay lets the reply to "turn the router off" reach the browser
+// first: the page may itself be loaded through the router.
+var routerOffDelay = 800 * time.Millisecond
+
+func (s *server) setRouter(r *http.Request) (int, any) {
+	var req struct {
+		Enabled *bool `json:"enabled"`
+	}
+	dec := json.NewDecoder(http.MaxBytesReader(nil, r.Body, 1<<10))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil || req.Enabled == nil {
+		return http.StatusBadRequest, errorBody("invalid_input", `expected {"enabled": true} or {"enabled": false}`, "")
+	}
+	if s.opts.Router == nil {
+		return http.StatusNotFound, errorBody("not_found", "the port-free router is not available here", "")
+	}
+	if !s.opts.Router.RouterStatus().CanChange {
+		return http.StatusForbidden, errorBody(string(core.CodePermission),
+			"switching port-free URLs needs administrator rights",
+			"Stop this dashboard (Ctrl+C) and start it again with: sudo localdns ui")
+	}
+	s.mu.Lock()
+	s.routerErr = ""
+	s.mu.Unlock()
+	if *req.Enabled {
+		if err := s.opts.Router.EnableRouter(); err != nil {
+			return http.StatusInternalServerError, errorBody(string(core.CodeInternal),
+				"could not turn on port-free URLs: "+err.Error(), "Run `localdns router` in a terminal to see why.")
+		}
+		s.mu.Lock()
+		s.mappedAt = time.Time{} // the dashboard name may have just been added
+		s.mu.Unlock()
+		return http.StatusOK, s.routerState()
+	}
+	go func() {
+		time.Sleep(routerOffDelay)
+		if err := s.opts.Router.DisableRouter(); err != nil {
+			s.mu.Lock()
+			s.routerErr = "could not turn off port-free URLs: " + err.Error()
+			s.mu.Unlock()
+		}
+	}()
+	resp := s.routerState()
+	resp.Running, resp.Installed, resp.DashboardURL = false, false, ""
+	return http.StatusAccepted, resp
 }
 
 func (s *server) removeEntry(r *http.Request) (int, any) {

@@ -128,6 +128,12 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			pr.SetXForwarded()
 		},
 		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
+			if host == core.DashboardHostname {
+				page(w, http.StatusBadGateway, "The LocalDNS dashboard isn't running",
+					"Start it in a terminal with <code>localdns ui</code>, then reload this page. "+
+						"It stops when you close that terminal or press Ctrl+C.")
+				return
+			}
 			page(w, http.StatusBadGateway, "Nothing is running on "+html.EscapeString(target.Host),
 				"<b>"+html.EscapeString(host)+"</b> points to <code>"+html.EscapeString(target.Host)+"</code>, but no app answered there. "+
 					"Start your app (or check its port), then reload this page.<br><small>"+html.EscapeString(errSummary(err))+"</small>")

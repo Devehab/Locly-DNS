@@ -8,9 +8,14 @@
   var rows = $("rows");
   var banner = $("banner");
   var addDialog = $("add-dialog");
+  var editDialog = $("edit-dialog");
   var deleteDialog = $("delete-dialog");
+  var routerOffDialog = $("router-off-dialog");
   var pendingDelete = null;
+  var pendingEdit = null;
   var readOnlyHint = "";
+  var routerState = null;
+  var lastEntries = [];
 
   function api(method, path, body) {
     var opts = { method: method, headers: { "X-LocalDNS-Token": token }, cache: "no-store" };
@@ -59,7 +64,7 @@
     el.textContent = text;
     el.hidden = false;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.hidden = true; }, 3000);
+    toastTimer = setTimeout(function () { el.hidden = true; }, 3500);
   }
 
   function cell(text, className) {
@@ -69,9 +74,68 @@
     return td;
   }
 
+  function button(text, className, label, onClick) {
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = className;
+    b.textContent = text;
+    b.setAttribute("aria-label", label);
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  // ---- Pasted links -------------------------------------------------------
+  // "http://127.0.0.1:3000/" → "127.0.0.1:3000". A path can't be part of a
+  // mapping, so it is cut off and shown as a hint instead.
+
+  function cleanValue(value) {
+    var v = value.trim();
+    var scheme = v.match(/^[a-z][a-z0-9+.-]*:\/\//i);
+    if (scheme && /^https?:\/\/$/i.test(scheme[0])) v = v.slice(scheme[0].length);
+    var path = "";
+    var cut = v.search(/[\/?#]/);
+    if (scheme && /^https?:\/\/$/i.test(scheme[0]) && cut >= 0) {
+      path = v.slice(cut).replace(/^\/+$/, "");
+      v = v.slice(0, cut);
+    } else {
+      v = v.replace(/\/+$/, "");
+    }
+    return { value: v, path: path, changed: v !== value };
+  }
+
+  function setNote(el, text) {
+    el.textContent = text || "";
+    el.hidden = !text;
+  }
+
+  function attachCleaner(input, note, hostInput) {
+    function clean() {
+      var c = cleanValue(input.value);
+      if (!c.changed) return;
+      input.value = c.value;
+      if (c.path) {
+        var host = (hostInput && hostInput.value.trim()) || "app.local";
+        setNote(note, "Only the address is kept. Open the page as http://" + host + c.path);
+      } else if (c.value) {
+        setNote(note, "✓ Link cleaned up: " + c.value);
+      }
+    }
+    input.addEventListener("paste", function () { setTimeout(clean, 0); });
+    input.addEventListener("blur", clean);
+    return clean;
+  }
+
+  var cleanAddHost = attachCleaner($("add-hostname"), $("add-note"));
+  var cleanAddAddress = attachCleaner($("add-address"), $("add-note"), $("add-hostname"));
+  var cleanEditHost = attachCleaner($("edit-hostname"), $("edit-note"));
+  var cleanEditAddress = attachCleaner($("edit-address"), $("edit-note"), $("edit-hostname"));
+
+  // ---- Table --------------------------------------------------------------
+
   var statusLabels = { active: "Active", missing: "Missing", conflict: "Conflict" };
 
   function render(entries) {
+    lastEntries = entries;
     $("loading").hidden = true;
     rows.textContent = "";
     $("empty").hidden = entries.length > 0;
@@ -110,27 +174,110 @@
       tr.appendChild(statusTd);
 
       var actions = cell(null, "actions-cell");
-      var del = document.createElement("button");
-      del.type = "button";
-      del.className = "btn btn-small btn-ghost-danger";
-      del.textContent = "Delete";
-      del.setAttribute("aria-label", "Delete " + e.hostname);
-      del.addEventListener("click", function () { openDelete(e); });
-      actions.appendChild(del);
+      actions.appendChild(button("Edit", "btn btn-small btn-ghost", "Edit " + e.hostname, function () { openEdit(e); }));
+      actions.appendChild(button("Delete", "btn btn-small btn-ghost-danger", "Delete " + e.hostname, function () { openDelete(e); }));
       tr.appendChild(actions);
 
       rows.appendChild(tr);
     });
+    renderRouter();
   }
 
+  // ---- Port-free URLs (router) --------------------------------------------
+
+  function exampleEntry() {
+    for (var i = 0; i < lastEntries.length; i++) {
+      var e = lastEntries[i];
+      if (e.port !== null && e.ip === "127.0.0.1" && e.hostname !== "localdns.local") return e;
+    }
+    return null;
+  }
+
+  function renderRouter() {
+    var card = $("router-card");
+    var r = routerState;
+    if (!r || !r.supported) { card.hidden = true; return; }
+    card.hidden = false;
+    var on = r.running;
+    var e = exampleEntry();
+    var name = e ? e.hostname : "app.local";
+    var port = e ? e.port : 3000;
+    var toggle = $("router-toggle");
+    toggle.checked = on;
+    toggle.disabled = !r.can_change;
+    var pill = $("router-state");
+    pill.textContent = on ? "On" : "Off";
+    pill.className = "pill " + (on ? "pill-on" : "pill-off");
+    $("router-desc").textContent = on
+      ? "Open http://" + name + " instead of http://" + name + ":" + port + "."
+      : "Names need their port, e.g. http://" + name + ":" + port + ". Turn this on to open http://" + name + ".";
+    var direct = "The dashboard always works at " + r.direct_url + ".";
+    if (on && r.dashboard_url) direct = "The dashboard is at " + r.dashboard_url + ", and always at " + r.direct_url + ".";
+    if (!r.can_change) direct += " To change this switch, restart the dashboard with: sudo localdns ui";
+    if (r.last_error) direct += " " + r.last_error;
+    $("router-direct").textContent = direct;
+    $("router-off-example").textContent = "http://" + name + ":" + port;
+    $("router-off-direct").textContent = r.direct_url;
+  }
+
+  function loadRouter() {
+    return api("GET", "/api/router").then(function (r) { routerState = r; renderRouter(); })
+      .catch(function () { routerState = null; renderRouter(); });
+  }
+
+  $("router-toggle").addEventListener("change", function (ev) {
+    var toggle = ev.target;
+    if (!toggle.checked) {
+      // Turning off: explain first that the dashboard then needs its IP.
+      toggle.checked = true;
+      setError($("router-off-error"), "");
+      routerOffDialog.showModal();
+      return;
+    }
+    toggle.disabled = true;
+    toast("Turning on port-free URLs…");
+    api("POST", "/api/router", { enabled: true })
+      .then(function (r) {
+        routerState = r;
+        toast(r.running ? "✓ Port-free URLs are on" : "Port-free URLs are starting…");
+        return refresh();
+      })
+      .catch(function (err) { showBanner(errorText(err), "error"); return loadRouter(); });
+  });
+
+  $("router-off-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var submit = $("router-off-submit");
+    submit.disabled = true;
+    api("POST", "/api/router", { enabled: false })
+      .then(function (r) {
+        routerOffDialog.close();
+        routerState = r;
+        renderRouter();
+        var viaName = location.hostname !== "127.0.0.1" && location.hostname !== "localhost";
+        if (viaName) {
+          // This page came through the router, which is stopping now.
+          showBanner("Port-free URLs are off. Moving the dashboard to " + r.direct_url + " …", "warn");
+          setTimeout(function () { location.href = r.direct_url + "/"; }, 1500);
+        } else {
+          toast("✓ Port-free URLs are off");
+          setTimeout(refresh, 1500);
+        }
+      })
+      .catch(function (err) { setError($("router-off-error"), errorText(err)); })
+      .then(function () { submit.disabled = false; });
+  });
+
+  // ---- Refresh ------------------------------------------------------------
+
   function refresh() {
-    return Promise.all([api("GET", "/api/status"), api("GET", "/api/entries")])
+    return Promise.all([api("GET", "/api/status"), api("GET", "/api/entries"), loadRouter()])
       .then(function (results) {
         var status = results[0];
         readOnlyHint = status.writable ? "" : (status.read_only_hint || "The hosts file is read-only.");
         $("footer-hosts").textContent = "Hosts file: " + status.hosts_file;
         if (readOnlyHint) {
-          showBanner("Read-only: you can view hosts but not add or delete them. " + readOnlyHint, "warn");
+          showBanner("Read-only: you can view hosts but not add, edit or delete them. " + readOnlyHint, "warn");
         } else {
           showBanner("");
         }
@@ -147,9 +294,11 @@
     el.hidden = !text;
   }
 
-  // Add host
+  // ---- Add ----------------------------------------------------------------
+
   $("add-button").addEventListener("click", function () {
     $("add-form").reset();
+    setNote($("add-note"), "");
     setError($("add-error"), readOnlyHint ? "Read-only: " + readOnlyHint : "");
     addDialog.showModal();
     $("add-hostname").focus();
@@ -157,6 +306,8 @@
 
   $("add-form").addEventListener("submit", function (ev) {
     ev.preventDefault();
+    cleanAddHost();
+    cleanAddAddress();
     var hostname = $("add-hostname").value.trim();
     var address = $("add-address").value.trim();
     if (!hostname || !address) {
@@ -175,7 +326,46 @@
       .then(function () { submit.disabled = false; });
   });
 
-  // Delete host
+  // ---- Edit ---------------------------------------------------------------
+
+  function openEdit(entry) {
+    pendingEdit = entry;
+    $("edit-name").textContent = entry.hostname;
+    $("edit-hostname").value = entry.hostname;
+    $("edit-address").value = entry.address;
+    setNote($("edit-note"), "");
+    setError($("edit-error"), readOnlyHint ? "Read-only: " + readOnlyHint : "");
+    editDialog.showModal();
+    $("edit-address").focus();
+    $("edit-address").select();
+  }
+
+  $("edit-form").addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!pendingEdit) return;
+    cleanEditHost();
+    cleanEditAddress();
+    var hostname = $("edit-hostname").value.trim();
+    var address = $("edit-address").value.trim();
+    if (!hostname || !address) {
+      setError($("edit-error"), "Enter a hostname and an address.");
+      return;
+    }
+    var submit = $("edit-submit");
+    submit.disabled = true;
+    api("PUT", "/api/entries/" + encodeURIComponent(pendingEdit.hostname), { hostname: hostname, address: address })
+      .then(function (res) {
+        editDialog.close();
+        toast(res.action === "unchanged" ? "Nothing changed" : "✓ " + res.entry.hostname + " updated");
+        pendingEdit = null;
+        return refresh();
+      })
+      .catch(function (err) { setError($("edit-error"), errorText(err)); })
+      .then(function () { submit.disabled = false; });
+  });
+
+  // ---- Delete -------------------------------------------------------------
+
   function openDelete(entry) {
     pendingDelete = entry;
     $("delete-name").textContent = entry.hostname;

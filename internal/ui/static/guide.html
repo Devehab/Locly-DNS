@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LocalDNS terminal guide · دليل الطرفية</title>
+  <meta name="description" content="Every LocalDNS (localdns) terminal command with examples, in English and Arabic.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/guide.css">
+  <script src="assets/guide.js" defer></script>
+</head>
+<body>
+  <main class="page guide">
+    <header class="top">
+      <div class="brand">
+        <img src="assets/favicon.svg" alt="" width="36" height="36">
+        <div>
+          <h1><span class="en">Terminal guide</span><span class="ar">دليل الطرفية</span></h1>
+          <p class="subtitle"><span class="en">Every LocalDNS command, with examples</span><span class="ar">كل أوامر LocalDNS مع أمثلة</span></p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <a class="btn" id="back-link" href="/"><span class="en">← Dashboard</span><span class="ar">→ لوحة التحكم</span></a>
+        <button type="button" class="btn" id="lang-toggle" lang="ar">العربية</button>
+      </div>
+    </header>
+
+    <nav class="toc card" aria-label="Contents">
+      <p class="toc-title"><span class="en">On this page</span><span class="ar">في هذه الصفحة</span></p>
+      <ol>
+        <li><a href="#start"><span class="en">Get started</span><span class="ar">البداية</span></a></li>
+        <li><a href="#add"><span class="en">Add a name</span><span class="ar">إضافة اسم</span></a></li>
+        <li><a href="#open"><span class="en">Open it</span><span class="ar">فتح الاسم</span></a></li>
+        <li><a href="#list"><span class="en">See your names</span><span class="ar">عرض الأسماء</span></a></li>
+        <li><a href="#edit"><span class="en">Change a name</span><span class="ar">تعديل اسم</span></a></li>
+        <li><a href="#remove"><span class="en">Remove a name</span><span class="ar">حذف اسم</span></a></li>
+        <li><a href="#ui"><span class="en">The dashboard</span><span class="ar">لوحة التحكم</span></a></li>
+        <li><a href="#router"><span class="en">Port-free URLs</span><span class="ar">روابط بدون منفذ</span></a></li>
+        <li><a href="#fix"><span class="en">Fix problems</span><span class="ar">حل المشكلات</span></a></li>
+        <li><a href="#agents"><span class="en">Scripts and AI agents</span><span class="ar">السكربتات ووكلاء الذكاء الاصطناعي</span></a></li>
+        <li><a href="#uninstall"><span class="en">Uninstall</span><span class="ar">إزالة البرنامج</span></a></li>
+        <li><a href="#reference"><span class="en">All commands</span><span class="ar">كل الأوامر</span></a></li>
+      </ol>
+    </nav>
+
+    <section id="start" class="card section">
+      <h2><span class="en">1. Get started</span><span class="ar">١. البداية</span></h2>
+      <p><span class="en">Install with one line. On macOS and Linux:</span><span class="ar">ثبّت البرنامج بسطر واحد. على macOS وLinux:</span></p>
+      <pre class="cmd"><code>curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh</code></pre>
+      <p><span class="en">On Windows (PowerShell):</span><span class="ar">وعلى Windows (عبر PowerShell):</span></p>
+      <pre class="cmd"><code>irm https://github.com/Devehab/Locly-DNS/releases/latest/download/install.ps1 | iex</code></pre>
+      <p><span class="en">Then see everything LocalDNS can do:</span><span class="ar">ثم اعرض كل ما يستطيع LocalDNS فعله:</span></p>
+      <pre class="cmd"><code>localdns info</code></pre>
+      <p class="tip"><span class="en"><strong>Administrator rights:</strong> adding, changing or removing a name edits your system's hosts file. On macOS and Linux, LocalDNS asks for your password (<code>sudo</code>) for that one command only. On Windows, use a terminal opened with “Run as administrator”. Commands that only read (<code>list</code>, <code>status</code>, <code>doctor</code>, <code>info</code>) never need it.</span><span class="ar"><strong>صلاحيات المسؤول:</strong> إضافة اسم أو تعديله أو حذفه يعدّل ملف hosts في نظامك. على macOS وLinux يطلب LocalDNS كلمة المرور (<code>sudo</code>) لذلك الأمر وحده. وعلى Windows استخدم طرفية مفتوحة بخيار «تشغيل كمسؤول». أوامر القراءة فقط (<code>list</code> و<code>status</code> و<code>doctor</code> و<code>info</code>) لا تحتاجها أبدًا.</span></p>
+    </section>
+
+    <section id="add" class="card section">
+      <h2><span class="en">2. Add a name</span><span class="ar">٢. إضافة اسم</span></h2>
+      <p><span class="en">Give a service a name you choose. The format is always <code>localdns add &lt;name&gt; &lt;ip[:port]&gt;</code>.</span><span class="ar">أعطِ أي خدمة اسمًا تختاره أنت. الصيغة دائمًا <code>localdns add &lt;الاسم&gt; &lt;العنوان[:المنفذ]&gt;</code>.</span></p>
+      <pre class="cmd"><code>localdns add app.local 127.0.0.1:3000</code></pre>
+      <p><span class="en">You can paste a link as it is, or use <code>localhost</code>: LocalDNS keeps just the address.</span><span class="ar">يمكنك لصق الرابط كما هو، أو استخدام <code>localhost</code>: يأخذ LocalDNS العنوان فقط.</span></p>
+      <pre class="cmd"><code>localdns add app.local http://127.0.0.1:3000/</code></pre>
+      <pre class="cmd"><code>localdns add api.local localhost:3002</code></pre>
+      <p><span class="en">A device on your network, with or without a port:</span><span class="ar">جهاز على شبكتك، مع منفذ أو بدونه:</span></p>
+      <pre class="cmd"><code>localdns add ha.local 192.168.1.60:8123</code></pre>
+      <pre class="cmd"><code>localdns add nas.lan 192.168.1.20</code></pre>
+      <div class="two-col">
+        <div>
+          <h3><span class="en">Allowed names</span><span class="ar">الأسماء المسموحة</span></h3>
+          <p><span class="en">Names reserved for local use, so a real website can never be taken over:</span><span class="ar">الأسماء المخصّصة للاستخدام المحلي فقط، حتى لا يُختطف أي موقع حقيقي أبدًا:</span></p>
+          <p class="chips" dir="ltr"><code>.local</code> <code>.test</code> <code>.localhost</code> <code>.internal</code> <code>.example</code> <code>.lan</code> <code>.home.arpa</code> <code>.localdomain</code></p>
+        </div>
+        <div>
+          <h3><span class="en">Allowed addresses</span><span class="ar">العناوين المسموحة</span></h3>
+          <p><span class="en">This computer (<code>127.0.0.1</code>, <code>::1</code>) and private networks (<code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>, <code>100.64.x.x</code> such as Tailscale). The port is optional.</span><span class="ar">هذا الجهاز (<code>127.0.0.1</code> و<code>::1</code>) والشبكات الخاصة (<code>192.168.x.x</code> و<code>10.x.x.x</code> و<code>172.16–31.x.x</code> و<code>100.64.x.x</code> مثل Tailscale). والمنفذ اختياري.</span></p>
+        </div>
+      </div>
+      <p class="tip"><span class="en">Adding the same name with the same address again changes nothing, so scripts can run it safely. To point an existing name somewhere else, use <a href="#edit"><code>edit</code></a>.</span><span class="ar">إضافة الاسم نفسه بالعنوان نفسه مرة أخرى لا تغيّر شيئًا، لذلك يمكن للسكربتات تكرارها بأمان. ولتوجيه اسم موجود إلى عنوان آخر استخدم <a href="#edit"><code>edit</code></a>.</span></p>
+    </section>
+
+    <section id="open" class="card section">
+      <h2><span class="en">3. Open it</span><span class="ar">٣. فتح الاسم</span></h2>
+      <p><span class="en">With port-free URLs on (the installer turns them on), just open the name:</span><span class="ar">عندما تكون الروابط بدون منفذ مفعّلة (والمثبّت يفعّلها تلقائيًا)، افتح الاسم مباشرة:</span></p>
+      <pre class="url"><code>http://app.local</code></pre>
+      <p><span class="en">The address with the port always works too, router or not:</span><span class="ar">والعنوان مع المنفذ يعمل دائمًا أيضًا، سواء كان الموجّه مفعّلًا أم لا:</span></p>
+      <pre class="url"><code>http://app.local:3000</code></pre>
+      <p class="tip"><span class="en">Names that point to another device (like <code>ha.local → 192.168.1.60:8123</code>) keep their port: <code>http://ha.local:8123</code>. A page inside your app works as usual: <code>http://app.local/settings</code>.</span><span class="ar">الأسماء التي تشير إلى جهاز آخر (مثل <code>ha.local → 192.168.1.60:8123</code>) تبقى بمنفذها: <code>http://ha.local:8123</code>. وصفحات تطبيقك تعمل كالمعتاد: <code>http://app.local/settings</code>.</span></p>
+    </section>
+
+    <section id="list" class="card section">
+      <h2><span class="en">4. See your names</span><span class="ar">٤. عرض الأسماء</span></h2>
+      <pre class="cmd"><code>localdns list</code></pre>
+<pre class="output" dir="ltr"><code>HOSTNAME     ADDRESS           STATUS    OPEN
+app.local    127.0.0.1:3000    ✓         http://app.local
+ha.local     192.168.1.60      ✓</code></pre>
+      <p><span class="en">For details on each name, where files are, and whether LocalDNS can write:</span><span class="ar">لتفاصيل كل اسم، وأماكن الملفات، وهل يستطيع LocalDNS الكتابة:</span></p>
+      <pre class="cmd"><code>localdns status</code></pre>
+      <ul>
+        <li><span class="en"><strong>active</strong>: the name works.</span><span class="ar"><strong>active (نشط)</strong>: الاسم يعمل.</span></li>
+        <li><span class="en"><strong>missing</strong>: the line was deleted from the hosts file by hand. Restore it with <code>localdns edit &lt;name&gt; &lt;address&gt;</code> or forget it with <code>localdns remove &lt;name&gt;</code>.</span><span class="ar"><strong>missing (مفقود)</strong>: حُذف السطر من ملف hosts يدويًا. أرجِعه بـ <code>localdns edit &lt;الاسم&gt; &lt;العنوان&gt;</code> أو احذفه نهائيًا بـ <code>localdns remove &lt;الاسم&gt;</code>.</span></li>
+        <li><span class="en"><strong>conflict</strong>: another line in your hosts file, outside LocalDNS, maps the same name and wins. Remove or rename that line yourself.</span><span class="ar"><strong>conflict (تعارض)</strong>: سطر آخر في ملف hosts، خارج LocalDNS، يعرّف الاسم نفسه ويتقدّم عليه. احذف ذلك السطر أو غيّر اسمه بنفسك.</span></li>
+      </ul>
+    </section>
+
+    <section id="edit" class="card section">
+      <h2><span class="en">5. Change a name</span><span class="ar">٥. تعديل اسم</span></h2>
+      <p><span class="en">Point a name to a new address:</span><span class="ar">وجّه الاسم إلى عنوان جديد:</span></p>
+      <pre class="cmd"><code>localdns edit app.local 127.0.0.1:4000</code></pre>
+      <p><span class="en">Rename it (the address stays):</span><span class="ar">غيّر الاسم (ويبقى العنوان كما هو):</span></p>
+      <pre class="cmd"><code>localdns edit app.local --name web.local</code></pre>
+      <p><span class="en">Both at once:</span><span class="ar">أو الاثنين معًا:</span></p>
+      <pre class="cmd"><code>localdns edit app.local 127.0.0.1:5173 --name web.local</code></pre>
+      <p class="tip"><span class="en">In the dashboard, use the <strong>Edit</strong> button next to a name. You never need to delete and add again.</span><span class="ar">وفي لوحة التحكم استخدم زر <strong>Edit</strong> بجانب الاسم. لن تحتاج أبدًا إلى الحذف ثم الإضافة من جديد.</span></p>
+    </section>
+
+    <section id="remove" class="card section">
+      <h2><span class="en">6. Remove a name</span><span class="ar">٦. حذف اسم</span></h2>
+      <pre class="cmd"><code>localdns remove app.local</code></pre>
+      <p><span class="en">It asks first. To skip the question (scripts):</span><span class="ar">يسألك للتأكيد أولًا. ولتخطّي السؤال (في السكربتات):</span></p>
+      <pre class="cmd"><code>localdns remove app.local --yes</code></pre>
+      <p class="tip"><span class="en">LocalDNS only removes names it added. Your other hosts entries are never touched.</span><span class="ar">لا يحذف LocalDNS إلا الأسماء التي أضافها هو. مدخلاتك الأخرى في ملف hosts لا تُمس أبدًا.</span></p>
+    </section>
+
+    <section id="ui" class="card section">
+      <h2><span class="en">7. The dashboard</span><span class="ar">٧. لوحة التحكم</span></h2>
+      <pre class="cmd"><code>localdns ui</code></pre>
+      <p><span class="en">It opens in your browser at a name, so there is no IP to remember:</span><span class="ar">تُفتح في متصفحك باسم، فلا تحتاج إلى حفظ أي عنوان IP:</span></p>
+      <pre class="url"><code>http://localdns.local</code></pre>
+      <p><span class="en">It is always reachable at its direct address too, even when port-free URLs are off:</span><span class="ar">ويمكن الوصول إليها دائمًا عبر عنوانها المباشر أيضًا، حتى عندما تكون الروابط بدون منفذ معطّلة:</span></p>
+      <pre class="url"><code>http://127.0.0.1:7357</code></pre>
+      <p><span class="en">The dashboard runs while that terminal is open; press Ctrl+C to stop it. On macOS and Linux it asks for your password so it can add, edit and delete names. Options:</span><span class="ar">تعمل لوحة التحكم ما دامت تلك الطرفية مفتوحة، واضغط Ctrl+C لإيقافها. على macOS وLinux تطلب كلمة المرور لتتمكن من الإضافة والتعديل والحذف. الخيارات:</span></p>
+      <table class="flags">
+        <tbody>
+          <tr><td dir="ltr"><code>--no-open</code></td><td><span class="en">Don't open the browser</span><span class="ar">بدون فتح المتصفح</span></td></tr>
+          <tr><td dir="ltr"><code>--port 8080</code></td><td><span class="en">Use another port (the name then needs it: <code>http://127.0.0.1:8080</code>)</span><span class="ar">استخدام منفذ آخر (وعندها افتحها بـ <code>http://127.0.0.1:8080</code>)</span></td></tr>
+          <tr><td dir="ltr"><code>--no-elevate</code></td><td><span class="en">Read-only, never ask for the password</span><span class="ar">للقراءة فقط، بدون طلب كلمة المرور</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="router" class="card section">
+      <h2><span class="en">8. Port-free URLs</span><span class="ar">٨. روابط بدون منفذ</span></h2>
+      <p><span class="en">The hosts file can store a name and an address, but never a port. The LocalDNS router fills that gap: it listens on <code>127.0.0.1:80</code> (this computer only) and forwards each of your names to its port. It never runs as root and starts on its own.</span><span class="ar">ملف hosts يحفظ الاسم والعنوان فقط، ولا يحفظ المنفذ أبدًا. موجّه LocalDNS يسدّ هذه الفجوة: يستمع على <code>127.0.0.1:80</code> (هذا الجهاز فقط) ويحوّل كل اسم من أسمائك إلى منفذه. لا يعمل أبدًا بصلاحيات root، ويبدأ تلقائيًا.</span></p>
+      <table class="flags">
+        <tbody>
+          <tr><td dir="ltr"><code>localdns router</code></td><td><span class="en">Is it on? Where are its files and log?</span><span class="ar">هل هو مفعّل؟ وأين ملفاته وسجلّه؟</span></td></tr>
+          <tr><td dir="ltr"><code>localdns router enable</code></td><td><span class="en">Turn it on (asks for your password once on macOS and Linux)</span><span class="ar">تفعيله (يطلب كلمة المرور مرة واحدة على macOS وLinux)</span></td></tr>
+          <tr><td dir="ltr"><code>localdns router disable</code></td><td><span class="en">Turn it off; names need their port again</span><span class="ar">إيقافه؛ وتحتاج الأسماء إلى منفذها من جديد</span></td></tr>
+          <tr><td dir="ltr"><code>localdns router run</code></td><td><span class="en">Run it in this terminal instead (to see errors)</span><span class="ar">تشغيله في هذه الطرفية بدل الخلفية (لرؤية الأخطاء)</span></td></tr>
+        </tbody>
+      </table>
+      <p class="callout"><span class="en"><strong>Turning it off?</strong> While it is off, the dashboard only opens at <code>http://127.0.0.1:7357</code> (run <code>localdns ui</code> first), not at <code>http://localdns.local</code>. Keep that address: it is where you switch port-free URLs back on, or run <code>localdns router enable</code>.</span><span class="ar"><strong>ستوقفه؟</strong> ما دام متوقفًا، تُفتح لوحة التحكم فقط على <code>http://127.0.0.1:7357</code> (بعد تشغيل <code>localdns ui</code>)، وليس على <code>http://localdns.local</code>. احتفظ بهذا العنوان: منه تعيد تفعيل الروابط بدون منفذ، أو شغّل <code>localdns router enable</code>.</span></p>
+    </section>
+
+    <section id="fix" class="card section">
+      <h2><span class="en">9. Fix problems</span><span class="ar">٩. حل المشكلات</span></h2>
+      <p><span class="en">Start here: it checks everything and prints a fix for each problem.</span><span class="ar">ابدأ من هنا: يفحص كل شيء ويطبع طريقة إصلاح كل مشكلة.</span></p>
+      <pre class="cmd"><code>localdns doctor</code></pre>
+      <dl class="faq">
+        <dt><span class="en">The name doesn't open at all</span><span class="ar">الاسم لا يفتح إطلاقًا</span></dt>
+        <dd><span class="en">Your system or browser may remember the old answer. Open a new tab, or clear the cache. macOS:</span><span class="ar">قد يتذكّر النظام أو المتصفح النتيجة القديمة. افتح تبويبًا جديدًا، أو امسح الذاكرة المؤقتة. على macOS:</span>
+          <pre class="cmd"><code>sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder</code></pre>
+          <span class="en">Windows:</span><span class="ar">وعلى Windows:</span>
+          <pre class="cmd"><code>ipconfig /flushdns</code></pre></dd>
+        <dt><span class="en">It works with the port but not without it</span><span class="ar">يعمل مع المنفذ ولا يعمل بدونه</span></dt>
+        <dd><span class="en">Check the router with <code>localdns router</code>. If it is off, run <code>localdns router enable</code>. If another program (Apache, nginx…) uses port 80, stop it. The name must point to <code>127.0.0.1</code> and have a port.</span><span class="ar">افحص الموجّه بـ <code>localdns router</code>. إن كان متوقفًا فشغّل <code>localdns router enable</code>. وإن كان برنامج آخر (Apache أو nginx…) يستخدم المنفذ 80 فأوقفه. ويجب أن يشير الاسم إلى <code>127.0.0.1</code> مع منفذ.</span></dd>
+        <dt><span class="en">“Nothing is running on 127.0.0.1:3000”</span><span class="ar">«Nothing is running on 127.0.0.1:3000»</span></dt>
+        <dd><span class="en">The name works, but your app isn't running on that port. Start your app, or fix the port with <code>localdns edit</code>.</span><span class="ar">الاسم يعمل، لكن تطبيقك لا يعمل على ذلك المنفذ. شغّل تطبيقك، أو صحّح المنفذ بـ <code>localdns edit</code>.</span></dd>
+        <dt><span class="en">“needs administrator rights”</span><span class="ar">«needs administrator rights»</span></dt>
+        <dd><span class="en">Run the command with <code>sudo</code> (macOS/Linux) or from an administrator terminal (Windows).</span><span class="ar">شغّل الأمر مع <code>sudo</code> (على macOS وLinux) أو من طرفية بصلاحيات المسؤول (على Windows).</span></dd>
+        <dt><span class="en"><code>.local</code> names are slow on my Mac</span><span class="ar">أسماء <code>.local</code> بطيئة على جهاز Mac</span></dt>
+        <dd><span class="en">macOS also uses <code>.local</code> for Bonjour. If you notice delays, use <code>.test</code> names instead.</span><span class="ar">يستخدم macOS اللاحقة <code>.local</code> أيضًا لخدمة Bonjour. إذا لاحظت تأخيرًا فاستخدم أسماء تنتهي بـ <code>.test</code>.</span></dd>
+      </dl>
+    </section>
+
+    <section id="agents" class="card section">
+      <h2><span class="en">10. Scripts and AI agents</span><span class="ar">١٠. السكربتات ووكلاء الذكاء الاصطناعي</span></h2>
+      <p><span class="en">Every command accepts <code>--json</code> (errors too), and never waits for input when there is no terminal. Use <code>--yes</code> to confirm removals.</span><span class="ar">كل أمر يقبل <code>--json</code> (والأخطاء أيضًا)، ولا ينتظر أي إدخال عندما لا توجد طرفية. استخدم <code>--yes</code> لتأكيد الحذف.</span></p>
+      <pre class="cmd"><code>localdns add app.local 127.0.0.1:3000 --json</code></pre>
+      <pre class="cmd"><code>localdns list --json</code></pre>
+      <pre class="cmd"><code>localdns remove app.local --yes --json</code></pre>
+      <h3><span class="en">Exit codes</span><span class="ar">رموز الخروج</span></h3>
+      <table class="flags">
+        <tbody>
+          <tr><td dir="ltr"><code>0</code></td><td><span class="en">Success</span><span class="ar">نجاح</span></td></tr>
+          <tr><td dir="ltr"><code>1</code></td><td><span class="en">Unexpected error, or doctor found a failure</span><span class="ar">خطأ غير متوقع، أو وجد doctor مشكلة</span></td></tr>
+          <tr><td dir="ltr"><code>2</code></td><td><span class="en">Invalid usage or input</span><span class="ar">استخدام أو إدخال غير صحيح</span></td></tr>
+          <tr><td dir="ltr"><code>3</code></td><td><span class="en">Name not managed by LocalDNS</span><span class="ar">الاسم لا يديره LocalDNS</span></td></tr>
+          <tr><td dir="ltr"><code>4</code></td><td><span class="en">Already exists, or defined outside LocalDNS</span><span class="ar">موجود مسبقًا، أو معرّف خارج LocalDNS</span></td></tr>
+          <tr><td dir="ltr"><code>5</code></td><td><span class="en">Administrator rights required</span><span class="ar">يحتاج صلاحيات المسؤول</span></td></tr>
+          <tr><td dir="ltr"><code>6</code></td><td><span class="en">Hosts file or config is damaged or missing</span><span class="ar">ملف hosts أو الإعدادات تالف أو مفقود</span></td></tr>
+          <tr><td dir="ltr"><code>7</code></td><td><span class="en">Not confirmed (add <code>--yes</code>)</span><span class="ar">لم يتم التأكيد (أضف <code>--yes</code>)</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="uninstall" class="card section">
+      <h2><span class="en">11. Uninstall</span><span class="ar">١١. إزالة البرنامج</span></h2>
+      <pre class="cmd"><code>localdns uninstall</code></pre>
+      <p><span class="en">Removes LocalDNS's names, its settings, the router and the program. Your other hosts entries are not touched. In scripts: <code>localdns uninstall --yes</code>.</span><span class="ar">يحذف أسماء LocalDNS وإعداداته والموجّه والبرنامج نفسه. مدخلاتك الأخرى في ملف hosts لا تُمس. وفي السكربتات: <code>localdns uninstall --yes</code>.</span></p>
+    </section>
+
+    <section id="reference" class="card section">
+      <h2><span class="en">12. All commands</span><span class="ar">١٢. كل الأوامر</span></h2>
+      <div class="table-wrap">
+        <table class="flags">
+          <tbody>
+            <tr><td dir="ltr"><code>localdns add &lt;name&gt; &lt;ip[:port]&gt;</code></td><td><span class="en">Add a name</span><span class="ar">إضافة اسم</span></td></tr>
+            <tr><td dir="ltr"><code>localdns edit &lt;name&gt; [ip[:port]] [--name new]</code></td><td><span class="en">Change an address, rename, or both</span><span class="ar">تغيير العنوان أو الاسم أو الاثنين</span></td></tr>
+            <tr><td dir="ltr"><code>localdns list</code></td><td><span class="en">List your names</span><span class="ar">عرض الأسماء</span></td></tr>
+            <tr><td dir="ltr"><code>localdns remove &lt;name&gt;</code></td><td><span class="en">Remove a name</span><span class="ar">حذف اسم</span></td></tr>
+            <tr><td dir="ltr"><code>localdns status</code></td><td><span class="en">Files, write access and the state of each name</span><span class="ar">الملفات وصلاحية الكتابة وحالة كل اسم</span></td></tr>
+            <tr><td dir="ltr"><code>localdns doctor</code></td><td><span class="en">Find problems and how to fix them</span><span class="ar">اكتشاف المشكلات وطريقة حلها</span></td></tr>
+            <tr><td dir="ltr"><code>localdns ui</code></td><td><span class="en">Open the dashboard</span><span class="ar">فتح لوحة التحكم</span></td></tr>
+            <tr><td dir="ltr"><code>localdns router [enable|disable]</code></td><td><span class="en">Port-free URLs</span><span class="ar">روابط بدون منفذ</span></td></tr>
+            <tr><td dir="ltr"><code>localdns uninstall</code></td><td><span class="en">Remove LocalDNS</span><span class="ar">إزالة LocalDNS</span></td></tr>
+            <tr><td dir="ltr"><code>localdns info</code></td><td><span class="en">Overview of commands, flags and exit codes</span><span class="ar">نظرة عامة على الأوامر والخيارات ورموز الخروج</span></td></tr>
+            <tr><td dir="ltr"><code>localdns &lt;command&gt; --help</code></td><td><span class="en">Detailed help for one command</span><span class="ar">مساعدة مفصّلة لأي أمر</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span><span class="en">LocalDNS works only on this computer: no DNS server, no telemetry.</span><span class="ar">يعمل LocalDNS على هذا الجهاز فقط: بلا خادم DNS، وبلا أي تتبّع.</span></span>
+      <a href="https://github.com/Devehab/Locly-DNS">github.com/Devehab/Locly-DNS</a>
+    </footer>
+  </main>
+</body>
+</html>

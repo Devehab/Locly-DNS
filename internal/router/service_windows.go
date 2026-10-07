@@ -72,6 +72,10 @@ func stopRunning() {
 // ServiceLog is a no-op on Windows.
 func ServiceLog() io.Writer { return io.Discard }
 
+// CanManage reports whether this process may manage the service: on
+// Windows it is a per-user login item, so always.
+func CanManage() bool { return true }
+
 // WritePID records the running router so Disable can stop it. The returned
 // function removes the record.
 func WritePID() func() {

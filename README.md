@@ -135,6 +135,7 @@ port: `http://app.local:3000`.)
 | Command                              | What it does                                         |
 | ------------------------------------ | ---------------------------------------------------- |
 | `localdns add <hostname> <ip[:port]>` | Add a hostname (idempotent; `--force` to replace)   |
+| `localdns edit <hostname> [ip[:port]] [--name new]` | Change the address, rename, or both |
 | `localdns list`                      | List hostnames with address and status              |
 | `localdns remove <hostname>`         | Remove a hostname (asks first; `--yes` to skip)     |
 | `localdns status`                    | Show file locations, write access and entry health  |
@@ -152,6 +153,8 @@ Every command has detailed help: `localdns add --help`, `localdns remove --help`
 localdns add app.local 127.0.0.1:3000      # hostname + IP + port
 localdns add ha.local 192.168.1.60         # hostname + IP (no port)
 localdns add v6.local [::1]:8080           # IPv6
+localdns add api.local localhost:3002      # localhost means 127.0.0.1
+localdns add web.local http://127.0.0.1:5173/   # a pasted link: just the address is kept
 localdns add app.local 127.0.0.1:4000 --force   # change an existing entry
 ```
 
@@ -161,6 +164,17 @@ in `list`, `--json` output and the UI.
 
 Adding an identical entry again succeeds without changing anything. Adding the same hostname
 with a *different* address fails with exit code `4` unless you pass `--force`.
+
+### `edit`
+
+```sh
+localdns edit app.local 127.0.0.1:4000                      # new address
+localdns edit app.local --name web.local                     # rename, same address
+localdns edit app.local 127.0.0.1:5173 --name web.local      # both at once
+```
+
+The entry keeps its place in the hosts file; nothing else changes. In the dashboard, use the
+**Edit** button.
 
 ### `remove`
 
@@ -292,14 +306,21 @@ $ localdns ui
 ✓ LocalDNS UI running
 
 Open:
-http://127.0.0.1:7357
+http://localdns.local
+
+Also at http://127.0.0.1:7357 (works even when port-free URLs are off)
 
 Listening on localhost only. Press Ctrl+C to stop.
 ```
 
-The dashboard lists every entry (hostname, IP, port, URL, status) with **+ Add Host** and
-**Delete** buttons. Deleting always asks for confirmation first. The UI is part of the
-binary (no Node.js or Python needed) and listens on `127.0.0.1` only.
+The dashboard opens at a name, `http://localdns.local`, so there is no IP to remember
+(`localdns router enable` maps that name to the dashboard; `http://127.0.0.1:7357` always
+works too). It lists every entry (hostname, IP, port, URL, status) with **+ Add Host**,
+**Edit** and **Delete** buttons, and a switch for [port-free URLs](#port-free-urls). Paste a
+link as it is (`http://127.0.0.1:3000/`): the dashboard keeps just the address. Deleting always
+asks for confirmation first, and **Terminal guide** opens a complete command guide in English
+and Arabic (also on [the website](https://devehab.github.io/Locly-DNS/guide/)). The UI is part
+of the binary (no Node.js or Python needed) and listens on `127.0.0.1` only.
 
 `localdns ui` opens the dashboard in your browser automatically (`--no-open` to skip,
 `--port 8080` for another port). The installer also opens it right after installing when you
@@ -355,6 +376,11 @@ browser → http://app.local → 127.0.0.1:80 (LocalDNS router) → 127.0.0.1:30
 | `localdns router enable`  | Install it to start on its own, and start it now           |
 | `localdns router disable` | Stop it and remove it (`uninstall` does too)               |
 | `localdns router run`     | Run it in the foreground instead (`--port 8080` to test)   |
+
+`localdns router enable` also names the dashboard: `localdns.local → 127.0.0.1:7357`, so
+`localdns ui` opens at `http://localdns.local`. **When you turn the router off** (with
+`localdns router disable` or the switch in the dashboard), the dashboard only opens at
+`http://127.0.0.1:7357`; that address is where you turn it back on.
 
 If another program already uses port 80 (a local Apache or nginx, for example), the router
 can't start; `localdns router` and `localdns doctor` say so. After updating LocalDNS, run

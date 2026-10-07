@@ -388,7 +388,7 @@ func TestInvalidInput(t *testing.T) {
 	cases := [][2]string{
 		{"google.com", "127.0.0.1"},
 		{"app.local", "8.8.8.8"},
-		{"app.local", "localhost:3000"},
+		{"app.local", "http://127.0.0.1:3000/page"},
 		{"app.local", "127.0.0.1:0"},
 		{"localhost", "127.0.0.1"},
 		{"app.local:3000", "127.0.0.1"},
@@ -622,4 +622,77 @@ func TestErrorHelpers(t *testing.T) {
 	if ErrorCode(fmt.Errorf("wrap: %w", e)) != CodeNotFound {
 		t.Fatal("wrapped code lost")
 	}
+}
+
+func TestEdit(t *testing.T) {
+	f := newFixture(t, hoststest.DefaultContent)
+	original := f.hosts.Content()
+	f.add("app.local", "127.0.0.1:3000")
+	f.add("api.local", "127.0.0.1:3002")
+	created := f.m.opts.Now()
+
+	// New address, same name; a pasted link is fine.
+	res, err := f.m.Edit("app.local", "", "http://127.0.0.1:4000/")
+	if err != nil || res.Action != ActionUpdated || res.Entry.Address != "127.0.0.1:4000" {
+		t.Fatalf("Edit address = %+v, %v", res, err)
+	}
+
+	// Rename only: keeps the address, the position in the hosts file and the
+	// creation time.
+	later := created.Add(time.Hour)
+	f.m.opts.Now = func() time.Time { return later }
+	res, err = f.m.Edit("APP.local", "web.local", "")
+	if err != nil || res.Entry.Hostname != "web.local" || res.Entry.Address != "127.0.0.1:4000" {
+		t.Fatalf("Edit rename = %+v, %v", res, err)
+	}
+	list, _ := f.m.List()
+	if len(list) != 2 || list[0].Hostname != "web.local" || list[1].Hostname != "api.local" {
+		t.Fatalf("list after rename = %+v", list)
+	}
+	cfg, _ := f.store.Load()
+	if cfg.Find("app.local") != nil {
+		t.Fatal("old name still in config")
+	}
+	if ce := cfg.Find("web.local"); ce == nil || !ce.CreatedAt.Equal(created.UTC().Truncate(time.Second)) || !ce.UpdatedAt.Equal(later) {
+		t.Fatalf("config entry = %+v", ce)
+	}
+	if doc := hosts.Parse([]byte(f.hosts.Content())); doc.Unmanaged("app.local") != nil {
+		t.Fatal("old name left in the hosts file")
+	}
+	if outsideSection(f.hosts.Content()) != original {
+		t.Fatal("edit changed lines outside the LocalDNS section")
+	}
+
+	// Both at once.
+	res, err = f.m.Edit("web.local", "site.test", "192.168.1.20")
+	if err != nil || res.Entry.Hostname != "site.test" || res.Entry.Address != "192.168.1.20" || res.Entry.Port != nil {
+		t.Fatalf("Edit both = %+v, %v", res, err)
+	}
+
+	// Nothing changes: unchanged, no write.
+	before := f.hosts.Content()
+	res, err = f.m.Edit("site.test", "site.test", "192.168.1.20")
+	if err != nil || res.Action != ActionUnchanged || f.hosts.Content() != before {
+		t.Fatalf("Edit no-op = %+v, %v", res, err)
+	}
+
+	_, err = f.m.Edit("site.test", "api.local", "")
+	wantCode(t, err, CodeExists)
+	_, err = f.m.Edit("site.test", "localhost", "")
+	wantCode(t, err, CodeInvalidInput)
+	_, err = f.m.Edit("site.test", "google.com", "")
+	wantCode(t, err, CodeInvalidInput)
+	_, err = f.m.Edit("site.test", "", "8.8.8.8")
+	wantCode(t, err, CodeInvalidInput)
+	_, err = f.m.Edit("site.test", "", "")
+	wantCode(t, err, CodeInvalidInput)
+	_, err = f.m.Edit("nope.local", "", "127.0.0.1")
+	wantCode(t, err, CodeNotFound)
+}
+
+func TestEditRefusesUnmanagedTarget(t *testing.T) {
+	f := newFixture(t, hoststest.DefaultContent+"10.0.0.9 taken.local\n")
+	f.add("app.local", "127.0.0.1:3000")
+	_, err := f.m.Edit("app.local", "taken.local", "")
+	wantCode(t, err, CodeConflict)
 }

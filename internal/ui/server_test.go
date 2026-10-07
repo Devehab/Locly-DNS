@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -30,6 +31,13 @@ type uiFixture struct {
 
 func newUIFixture(t *testing.T) *uiFixture {
 	t.Helper()
+	return newUIFixtureWith(t, nil, nil)
+}
+
+// newUIFixtureWith lets a test prepare the hosts file (knowing the port the
+// server will use) and adjust the options.
+func newUIFixtureWith(t *testing.T, setup func(m *core.Manager, port int), adjust func(*Options)) *uiFixture {
+	t.Helper()
 	hf := hoststest.New(t, hoststest.DefaultContent)
 	m := core.New(core.Options{Hosts: hf, Store: config.NewStore(filepath.Join(t.TempDir(), "cfg"))})
 	ln, err := Listen(0)
@@ -37,7 +45,14 @@ func newUIFixture(t *testing.T) *uiFixture {
 		t.Fatal(err)
 	}
 	port := ln.Addr().(*net.TCPAddr).Port
-	h, err := NewHandler(m, Options{Port: port, Version: "test", Token: testToken, ReadOnlyHint: "sudo localdns ui"})
+	if setup != nil {
+		setup(m, port)
+	}
+	opts := Options{Port: port, Version: "test", Token: testToken, ReadOnlyHint: "sudo localdns ui"}
+	if adjust != nil {
+		adjust(&opts)
+	}
+	h, err := NewHandler(m, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -321,5 +336,156 @@ func TestServeStopsOnCancel(t *testing.T) {
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("Serve did not stop")
+	}
+}
+
+func TestDashboardNameNeedsHostsEntry(t *testing.T) {
+	viaName := authed("Content-Type", "application/json", "Origin", "http://"+core.DashboardHostname)
+
+	// Not mapped: the name is refused, like any other.
+	f := newUIFixture(t)
+	if resp, _ := f.do("GET", "/", "", map[string]string{"Host": core.DashboardHostname}); resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("unmapped dashboard name: %d", resp.StatusCode)
+	}
+
+	// Mapped to this server: allowed through the router (port 80) or directly.
+	f = newUIFixtureWith(t, func(m *core.Manager, port int) {
+		if _, err := m.Add(core.DashboardHostname, "127.0.0.1:"+strconv.Itoa(port), core.AddOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}, nil)
+	for _, host := range []string{core.DashboardHostname, core.DashboardHostname + ":" + port(f)} {
+		if resp, _ := f.do("GET", "/", "", map[string]string{"Host": host}); resp.StatusCode != http.StatusOK {
+			t.Errorf("Host %s: %d", host, resp.StatusCode)
+		}
+	}
+	viaName["Host"] = core.DashboardHostname
+	if resp, _ := f.do("POST", "/api/entries", `{"hostname":"a.local","address":"127.0.0.1"}`, viaName); resp.StatusCode != http.StatusCreated {
+		t.Errorf("API call through the dashboard name: %d", resp.StatusCode)
+	}
+
+	// Mapped somewhere else: refused.
+	f = newUIFixtureWith(t, func(m *core.Manager, port int) {
+		if _, err := m.Add(core.DashboardHostname, "127.0.0.1:"+strconv.Itoa(port+1), core.AddOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}, nil)
+	if resp, _ := f.do("GET", "/", "", map[string]string{"Host": core.DashboardHostname}); resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("dashboard name mapped elsewhere: %d", resp.StatusCode)
+	}
+}
+
+func TestEditThroughAPI(t *testing.T) {
+	f := newUIFixture(t)
+	same := authed("Content-Type", "application/json", "Origin", "http://127.0.0.1:"+port(f))
+	f.do("POST", "/api/entries", `{"hostname":"app.local","address":"127.0.0.1:3000"}`, same)
+	resp, body := f.do("PUT", "/api/entries/app.local", `{"hostname":"web.local","address":"http://127.0.0.1:4000/"}`, same)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("edit: %d %v", resp.StatusCode, body)
+	}
+	entry := body["entry"].(map[string]any)
+	if entry["hostname"] != "web.local" || entry["address"] != "127.0.0.1:4000" {
+		t.Fatalf("edit result = %v", entry)
+	}
+	resp, body = f.do("PUT", "/api/entries/nope.local", `{"hostname":"","address":"127.0.0.1"}`, same)
+	if resp.StatusCode != http.StatusNotFound || errCode(body) != "not_found" {
+		t.Fatalf("edit unknown: %d %v", resp.StatusCode, body)
+	}
+	resp, _ = f.do("PUT", "/api/entries/web.local", `{"hostname":"x.local"}`, authed("Origin", "http://127.0.0.1:"+port(f)))
+	if resp.StatusCode != http.StatusUnsupportedMediaType {
+		t.Fatalf("edit without JSON content type: %d", resp.StatusCode)
+	}
+}
+
+type fakeSwitch struct {
+	mu                sync.Mutex
+	status            RouterStatus
+	enabled, disabled int
+}
+
+func (f *fakeSwitch) RouterStatus() RouterStatus {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.status
+}
+
+func (f *fakeSwitch) EnableRouter() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.enabled++
+	f.status.Running, f.status.Installed = true, true
+	return nil
+}
+
+func (f *fakeSwitch) DisableRouter() error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.disabled++
+	f.status.Running, f.status.Installed = false, false
+	return nil
+}
+
+func TestRouterSwitch(t *testing.T) {
+	routerOffDelay = 10 * time.Millisecond
+	sw := &fakeSwitch{status: RouterStatus{Running: true, Installed: true, CanChange: true}}
+	f := newUIFixtureWith(t, func(m *core.Manager, port int) {
+		_, _ = m.Add(core.DashboardHostname, "127.0.0.1:"+strconv.Itoa(port), core.AddOptions{})
+	}, func(o *Options) { o.Router = sw })
+	same := authed("Content-Type", "application/json", "Origin", "http://127.0.0.1:"+port(f))
+
+	_, body := f.do("GET", "/api/router", "", same)
+	if body["supported"] != true || body["running"] != true || body["dashboard_url"] != "http://localdns.local" ||
+		body["direct_url"] != "http://127.0.0.1:"+port(f) {
+		t.Fatalf("router status = %v", body)
+	}
+
+	// Off: the reply comes first, then the router stops.
+	resp, body := f.do("POST", "/api/router", `{"enabled":false}`, same)
+	if resp.StatusCode != http.StatusAccepted || body["running"] != false || body["direct_url"] == nil {
+		t.Fatalf("switch off: %d %v", resp.StatusCode, body)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for sw.RouterStatus().Running && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if sw.disabled != 1 {
+		t.Fatal("router was not switched off")
+	}
+
+	resp, body = f.do("POST", "/api/router", `{"enabled":true}`, same)
+	if resp.StatusCode != http.StatusOK || body["running"] != true || sw.enabled != 1 {
+		t.Fatalf("switch on: %d %v", resp.StatusCode, body)
+	}
+
+	if resp, _ := f.do("POST", "/api/router", `{"on":true}`, same); resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("bad body: %d", resp.StatusCode)
+	}
+
+	// Without administrator rights the switch is refused and explains why.
+	sw.mu.Lock()
+	sw.status.CanChange = false
+	sw.mu.Unlock()
+	resp, body = f.do("POST", "/api/router", `{"enabled":false}`, same)
+	if resp.StatusCode != http.StatusForbidden || !strings.Contains(body["error"].(map[string]any)["hint"].(string), "sudo localdns ui") {
+		t.Fatalf("no rights: %d %v", resp.StatusCode, body)
+	}
+
+	// No router control at all: the switch is hidden.
+	f = newUIFixture(t)
+	if _, body := f.do("GET", "/api/router", "", authed()); body["supported"] != false {
+		t.Fatalf("router without control = %v", body)
+	}
+}
+
+func TestGuideIsServed(t *testing.T) {
+	f := newUIFixture(t)
+	resp, _ := f.do("GET", "/guide", "", nil)
+	if resp.StatusCode != http.StatusOK || !strings.HasPrefix(resp.Header.Get("Content-Type"), "text/html") {
+		t.Fatalf("guide: %d %v", resp.StatusCode, resp.Header)
+	}
+	for _, a := range []string{"guide.js", "guide.css"} {
+		if resp, _ := f.do("GET", "/assets/"+a, "", nil); resp.StatusCode != http.StatusOK {
+			t.Errorf("%s: %d", a, resp.StatusCode)
+		}
 	}
 }

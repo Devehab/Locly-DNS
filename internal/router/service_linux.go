@@ -67,5 +67,9 @@ func Disable() error {
 // ServiceLog is a no-op on Linux (systemd captures output in the journal).
 func ServiceLog() io.Writer { return io.Discard }
 
+// CanManage reports whether this process may install or remove the
+// service: on Linux that takes root.
+func CanManage() bool { return os.Geteuid() == 0 }
+
 // WritePID is a no-op on Linux (systemd tracks the process).
 func WritePID() func() { return func() {} }

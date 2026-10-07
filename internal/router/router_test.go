@@ -246,3 +246,19 @@ func TestOnlyLoopbackAddressesAreServed(t *testing.T) {
 		}
 	}
 }
+
+func TestDashboardNotRunning(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	_ = ln.Close()
+	r := New(func() ([]core.Entry, error) {
+		return []core.Entry{entry(core.DashboardHostname, "127.0.0.1", port)}, nil
+	}, "test")
+	rec := get(t, r, core.DashboardHostname, "/")
+	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "localdns ui") {
+		t.Fatalf("got %d %q", rec.Code, rec.Body.String())
+	}
+}

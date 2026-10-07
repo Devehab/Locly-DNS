@@ -16,5 +16,8 @@ func Disable() error { return nil }
 // ServiceLog is a no-op.
 func ServiceLog() io.Writer { return io.Discard }
 
+// CanManage reports false: there is no service manager here.
+func CanManage() bool { return false }
+
 // WritePID is a no-op.
 func WritePID() func() { return func() {} }

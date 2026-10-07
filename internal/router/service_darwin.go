@@ -189,5 +189,9 @@ func Disable() error {
 	return os.RemoveAll(supportDir)
 }
 
+// CanManage reports whether this process may install or remove the
+// service: on macOS that takes root.
+func CanManage() bool { return os.Geteuid() == 0 }
+
 // WritePID is a no-op on macOS (launchd tracks the process).
 func WritePID() func() { return func() {} }

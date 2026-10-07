@@ -19,10 +19,25 @@
           <p class="subtitle">Your local services</p>
         </div>
       </div>
-      <button type="button" id="add-button" class="btn btn-primary">+ Add Host</button>
+      <div class="top-actions">
+        <a class="btn" href="/guide">Terminal guide</a>
+        <button type="button" id="add-button" class="btn btn-primary">+ Add Host</button>
+      </div>
     </header>
 
     <div id="banner" class="banner" role="alert" hidden></div>
+
+    <section id="router-card" class="router-card" aria-labelledby="router-title" hidden>
+      <div class="router-text">
+        <p class="router-title"><span id="router-title">Port-free URLs</span> <span id="router-state" class="pill"></span></p>
+        <p id="router-desc" class="router-desc"></p>
+        <p id="router-direct" class="router-desc"></p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="router-toggle" role="switch" aria-labelledby="router-title">
+        <span class="slider" aria-hidden="true"></span>
+      </label>
+    </section>
 
     <section class="card" aria-labelledby="hosts-heading">
       <h2 id="hosts-heading" class="sr-only">Hosts</h2>
@@ -61,11 +76,29 @@
       <input id="add-hostname" name="hostname" placeholder="app.local" autocomplete="off" autocapitalize="off" spellcheck="false" required>
       <label for="add-address">Address</label>
       <input id="add-address" name="address" placeholder="127.0.0.1:3000" autocomplete="off" autocapitalize="off" spellcheck="false" required>
-      <p class="help">IP address with an optional port, e.g. <code>127.0.0.1:3000</code> or <code>192.168.1.60</code>.</p>
+      <p class="help">IP address with an optional port, e.g. <code>127.0.0.1:3000</code> or <code>192.168.1.60</code>. Pasting a link like <code>http://127.0.0.1:3000/</code> works too.</p>
+      <p id="add-note" class="note" role="status" hidden></p>
       <p id="add-error" class="form-error" role="alert" hidden></p>
       <div class="actions">
         <button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn btn-primary" id="add-submit">Add</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="edit-dialog" aria-labelledby="edit-title">
+    <form id="edit-form" novalidate>
+      <h2 id="edit-title">Edit <span id="edit-name"></span></h2>
+      <label for="edit-hostname">Hostname</label>
+      <input id="edit-hostname" name="hostname" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <label for="edit-address">Address</label>
+      <input id="edit-address" name="address" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <p class="help">Change where the name points, rename it, or both. Nothing else in your hosts file changes.</p>
+      <p id="edit-note" class="note" role="status" hidden></p>
+      <p id="edit-error" class="form-error" role="alert" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="edit-submit">Save</button>
       </div>
     </form>
   </dialog>
@@ -78,6 +111,19 @@
       <div class="actions">
         <button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn btn-danger" id="delete-submit">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="router-off-dialog" aria-labelledby="router-off-title">
+    <form id="router-off-form">
+      <h2 id="router-off-title">Turn off port-free URLs?</h2>
+      <p>Your names will need their port again, for example <code id="router-off-example">http://app.local:3000</code>.</p>
+      <p class="callout">After this, the dashboard only opens at <strong><code id="router-off-direct">http://127.0.0.1:7357</code></strong> (while <code>localdns ui</code> runs). Keep that address: it is where you turn port-free URLs back on.</p>
+      <p id="router-off-error" class="form-error" role="alert" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-danger" id="router-off-submit">Turn off</button>
       </div>
     </form>
   </dialog>

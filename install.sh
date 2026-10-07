@@ -156,7 +156,7 @@ main() {
 	say "Get started:"
 	say "  localdns info"
 	say "  localdns add app.local 127.0.0.1:3000"
-	say "  localdns ui            # dashboard at http://127.0.0.1:7357"
+	say "  localdns ui            # the dashboard: http://localdns.local (or http://127.0.0.1:7357)"
 	say ""
 	say "Adding or removing names edits /etc/hosts, so LocalDNS asks for your"
 	say "password (sudo) for that one action."
@@ -175,7 +175,7 @@ main() {
 		fi
 		if [ -z "${LOCALDNS_NO_UI:-}" ]; then
 			say ""
-			say "Opening the dashboard (http://127.0.0.1:7357)..."
+			say "Opening the dashboard..."
 			say ""
 			"$INSTALL_DIR/localdns" ui </dev/tty || true
 		fi

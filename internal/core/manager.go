@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"net/netip"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -354,6 +355,100 @@ func (m *Manager) Add(hostname, address string, opts AddOptions) (Result, error)
 		return Result{}, err
 	}
 	return Result{Action: action, Entry: makeEntry(name, ip, port, StatusActive)}, nil
+}
+
+// Edit changes a managed entry in one write: its address, its hostname, or
+// both. An empty newHostname keeps the name and an empty address keeps the
+// address. The entry keeps its place in the hosts file and its creation
+// time.
+func (m *Manager) Edit(hostname, newHostname, address string) (Result, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	old, err := validate.Hostname(hostname)
+	if err != nil {
+		return Result{}, invalidInput(err)
+	}
+	if strings.TrimSpace(newHostname) == "" && strings.TrimSpace(address) == "" {
+		return Result{}, newError(CodeInvalidInput,
+			"Example: localdns edit "+old+" 127.0.0.1:4000, or localdns edit "+old+" --name web.local",
+			nil, "nothing to change: give a new address, a new name, or both")
+	}
+	st, err := m.load()
+	if err != nil {
+		return Result{}, err
+	}
+	cur, err := m.find(st, old)
+	if err != nil {
+		return Result{}, err
+	}
+
+	name := old
+	if strings.TrimSpace(newHostname) != "" {
+		if name, err = validate.LocalHostname(newHostname); err != nil {
+			return Result{}, invalidInput(err)
+		}
+	}
+	ip, err := netip.ParseAddr(cur.IP)
+	if err != nil {
+		return Result{}, newError(CodeInternal, "", err, "invalid stored address %q", cur.IP)
+	}
+	var port uint16
+	if cur.Port != nil {
+		port = *cur.Port
+	}
+	if strings.TrimSpace(address) != "" {
+		if ip, port, err = validate.Address(address); err != nil {
+			return Result{}, invalidInput(err)
+		}
+		if err := validate.LocalIP(ip); err != nil {
+			return Result{}, invalidInput(err)
+		}
+	}
+	if name == old && validate.FormatAddress(ip, port) == cur.Address && cur.Status == StatusActive {
+		return Result{Action: ActionUnchanged, Entry: cur}, nil
+	}
+
+	if name != old {
+		if un := st.doc.Unmanaged(name); len(un) > 0 {
+			return Result{}, newError(CodeConflict,
+				"LocalDNS never edits entries it does not own. Choose a different hostname.",
+				nil, "%s is already defined on line %d of %s (%s), outside the LocalDNS section",
+				name, un[0].Line, m.HostsPath(), un[0].IP)
+		}
+		if _, ok := st.doc.Entry(name); ok || st.cfg.Find(name) != nil {
+			return Result{}, newError(CodeExists,
+				"Remove it first (localdns remove "+name+") or choose a different hostname.",
+				nil, "%s is already managed by LocalDNS", name)
+		}
+	}
+
+	list := st.doc.Entries()
+	replaced := false
+	for i := range list {
+		if list[i].Hostname == old {
+			list[i] = hosts.Entry{IP: ip, Hostname: name}
+			replaced = true
+		}
+	}
+	if !replaced {
+		// The line was deleted by hand (status "missing"): restore it.
+		list = append(list, hosts.Entry{IP: ip, Hostname: name})
+	}
+	now := m.opts.Now().UTC().Truncate(time.Second)
+	created := now
+	if ce := st.cfg.Find(old); ce != nil {
+		created = ce.CreatedAt
+	}
+	st.cfg.Delete(old)
+	st.cfg.Put(config.Entry{Hostname: name, IP: ip.String(), Port: port, CreatedAt: created, UpdatedAt: now})
+	if err := st.doc.SetEntries(list); err != nil {
+		return Result{}, newError(CodeInternal, "", err, "%v", err)
+	}
+	if err := m.commit(st); err != nil {
+		return Result{}, err
+	}
+	return Result{Action: ActionUpdated, Entry: makeEntry(name, ip, port, StatusActive)}, nil
 }
 
 // Remove deletes the managed entry for hostname. Entries outside the

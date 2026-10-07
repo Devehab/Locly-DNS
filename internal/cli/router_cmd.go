@@ -12,6 +12,7 @@ import (
 	"github.com/devehab/locly-dns/internal/core"
 	"github.com/devehab/locly-dns/internal/platform"
 	"github.com/devehab/locly-dns/internal/router"
+	"github.com/devehab/locly-dns/internal/ui"
 	"github.com/devehab/locly-dns/internal/version"
 )
 
@@ -29,6 +30,9 @@ type RouterControl interface {
 	// Running reports whether a LocalDNS router answers on port 80, and
 	// its version.
 	Running() (bool, string)
+	// CanManage reports whether this process may enable or disable it
+	// without asking for administrator rights.
+	CanManage() bool
 }
 
 type systemRouter struct{}
@@ -39,6 +43,7 @@ func (systemRouter) Enable(exe string, env map[string]string) error {
 }
 func (systemRouter) Disable() error          { return router.Disable() }
 func (systemRouter) Running() (bool, string) { return router.Probe(router.DefaultPort) }
+func (systemRouter) CanManage() bool         { return router.CanManage() }
 
 type offRouter struct{}
 
@@ -48,6 +53,7 @@ func (offRouter) Enable(string, map[string]string) error {
 }
 func (offRouter) Disable() error          { return nil }
 func (offRouter) Running() (bool, string) { return false, "" }
+func (offRouter) CanManage() bool         { return false }
 
 // routerRunning is checked once per command, and only when an entry could
 // use a port-free URL.
@@ -171,13 +177,14 @@ func routerEnable(c *runCtx) int {
 		return c.fail(&core.Error{Code: core.CodeInternal, Message: "could not enable the router: " + err.Error(),
 			Hint: "You can still run it in a terminal: localdns router run"})
 	}
-	running := false
-	for i := 0; i < 25 && !running; i++ {
-		time.Sleep(200 * time.Millisecond)
-		running, _ = c.env.Router.Running()
-	}
+	running := c.waitForRouter()
+	dashboardErr := c.ensureDashboardEntry()
 	if c.o.json {
-		writeJSON(c.env.Stdout, map[string]any{"enabled": true, "running": running})
+		out := map[string]any{"enabled": true, "running": running}
+		if dashboardErr == nil {
+			out["dashboard_url"] = "http://" + core.DashboardHostname
+		}
+		writeJSON(c.env.Stdout, out)
 		return ExitOK
 	}
 	p := c.out
@@ -187,6 +194,13 @@ func routerEnable(c *runCtx) int {
 		p.println()
 		p.println("Open your names without a port, for example:")
 		p.println("  http://app.local   (instead of http://app.local:3000)")
+		p.println()
+		if dashboardErr == nil {
+			p.println("The dashboard (localdns ui) opens at http://" + core.DashboardHostname)
+		} else if core.ErrorCode(dashboardErr) == core.CodePermission {
+			p.println(p.dim("To open the dashboard at http://" + core.DashboardHostname +
+				", run this once as administrator: localdns router enable"))
+		}
 	} else {
 		p.println(p.warn() + " It is not answering yet. Run `localdns router` in a few seconds;")
 		p.println("  if another program uses port 80, stop that program first.")
@@ -212,8 +226,73 @@ func routerDisable(c *runCtx) int {
 		writeJSON(c.env.Stdout, map[string]any{"enabled": false})
 		return ExitOK
 	}
-	c.out.println(c.out.ok() + " Router disabled; URLs need their port again (http://app.local:3000)")
+	p := c.out
+	p.println(p.ok() + " Router disabled; names need their port again (http://app.local:3000)")
+	p.println()
+	p.println("The dashboard is now only at " + ui.URL(ui.DefaultPort) + " (start it with: localdns ui).")
+	p.println("Turn port-free URLs back on there, or with: localdns router enable")
 	return ExitOK
+}
+
+// waitForRouter gives a freshly enabled router up to five seconds to answer.
+func (c *runCtx) waitForRouter() bool {
+	for i := 0; i < 25; i++ {
+		time.Sleep(200 * time.Millisecond)
+		if running, _ := c.env.Router.Running(); running {
+			return true
+		}
+	}
+	return false
+}
+
+// ensureDashboardEntry names the dashboard (localdns.local → 127.0.0.1:7357)
+// so people open it by name. It never replaces another mapping of that name.
+func (c *runCtx) ensureDashboardEntry() error {
+	_, err := c.manager().Add(core.DashboardHostname, core.DashboardAddress, core.AddOptions{})
+	return err
+}
+
+// dashboardURL is where to open a dashboard listening on port: its name when
+// the router is on and the hosts file maps the name there, else the IP.
+func (c *runCtx) dashboardURL(port int) string {
+	if port == core.DashboardPort {
+		if running, _ := c.env.Router.Running(); running {
+			e, err := c.manager().Get(core.DashboardHostname)
+			if err == nil && e.Status == core.StatusActive && e.Port != nil && int(*e.Port) == port {
+				return "http://" + core.DashboardHostname
+			}
+		}
+	}
+	return ui.URL(port)
+}
+
+// dashboardRouter lets the web UI show and switch the router.
+type dashboardRouter struct{ c *runCtx }
+
+func (d dashboardRouter) RouterStatus() ui.RouterStatus {
+	st := d.c.env.Router.State()
+	running, _ := d.c.env.Router.Running()
+	return ui.RouterStatus{Running: running, Installed: st.Installed && !st.Outdated, CanChange: d.c.env.Router.CanManage()}
+}
+
+func (d dashboardRouter) EnableRouter() error {
+	if err := d.c.env.Router.Enable(d.c.env.Executable, d.c.routerEnv()); err != nil {
+		return err
+	}
+	d.c.waitForRouter()
+	_ = d.c.ensureDashboardEntry()
+	return nil
+}
+
+func (d dashboardRouter) DisableRouter() error { return d.c.env.Router.Disable() }
+
+// uiRouter is the router switch for the web UI, or nil where routers aren't
+// managed (tests, unsupported systems).
+func (c *runCtx) uiRouter() ui.RouterSwitch {
+	if k := c.env.Router.State().Kind; k == "off" || k == "none" {
+		return nil
+	}
+	return dashboardRouter{c}
 }
 
 func routerRun(c *runCtx) int {

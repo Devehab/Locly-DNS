@@ -603,3 +603,30 @@ func TestUIAsksForAdminRightsWhenReadOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestEdit(t *testing.T) {
+	h := newHarness(t)
+	h.run([]string{"add", "app.local", "127.0.0.1:3000"})
+
+	r := h.run([]string{"edit", "app.local", "http://127.0.0.1:4000/"})
+	if r.code != 0 || !strings.Contains(r.stdout, "Updated successfully") || !strings.Contains(r.stdout, "app.local → 127.0.0.1:4000") {
+		t.Fatalf("edit address: %+v", r)
+	}
+	r = h.run([]string{"edit", "app.local", "--name", "web.local", "--json"})
+	v := r.json(t)
+	if r.code != 0 || v["action"] != "updated" || v["entry"].(map[string]any)["hostname"] != "web.local" {
+		t.Fatalf("edit --name: %+v", r)
+	}
+	if r := h.run([]string{"edit", "web.local", "127.0.0.1:4000"}); !strings.Contains(r.stdout, "Nothing to change") {
+		t.Fatalf("edit no-op: %+v", r)
+	}
+	if r := h.run([]string{"edit", "web.local"}); r.code != ExitUsage {
+		t.Fatalf("edit with nothing to change: %+v", r)
+	}
+	if r := h.run([]string{"edit", "nope.local", "127.0.0.1"}); r.code != ExitNotFound {
+		t.Fatalf("edit unknown: %+v", r)
+	}
+	if r := h.run([]string{"add", "api.local", "localhost:3002", "--json"}); r.json(t)["entry"].(map[string]any)["address"] != "127.0.0.1:3002" {
+		t.Fatalf("add localhost: %+v", r)
+	}
+}
