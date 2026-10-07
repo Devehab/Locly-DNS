@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Locly thumbnail</title>
+<link rel="stylesheet" href="film.css">
+<style>
+  /* A still for social video posts (LinkedIn puts its own play button in
+     the middle, so the middle stays clear). ?lang=ar for Arabic. */
+  .stage { --t: 2.4; }
+  .th-brand { position: absolute; left: 110px; top: 92px; display: flex; align-items: center; gap: 22px; }
+  .th-brand img { width: 84px; height: 84px; filter: drop-shadow(0 14px 40px rgba(37, 99, 235, 0.55)); }
+  .th-brand b { font-size: 64px; font-weight: 800; letter-spacing: -0.04em; }
+  .th-head { position: absolute; margin: 0; left: 110px; top: 228px; width: 820px; font-size: 124px; font-weight: 900; line-height: 1.0; letter-spacing: -0.045em; }
+  .th-head .hot { color: #fb7185; text-shadow: 0 0 60px rgba(251, 113, 133, 0.45); }
+  .th-sub { position: absolute; left: 110px; top: 642px; width: 760px; font-size: 40px; font-weight: 500; line-height: 1.35; color: #cbd5e1; }
+  .th-sub b { color: #fff; font-weight: 700; }
+  .th-tags { position: absolute; left: 110px; top: 828px; display: flex; flex-wrap: wrap; gap: 14px; width: 800px; }
+  .th-tags span { padding: 12px 22px; border-radius: 999px; background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(148, 163, 184, 0.3); font-size: 26px; font-weight: 600; color: #e2e8f0; white-space: nowrap; }
+  .th-tags span::before { content: "✓ "; color: #4ade80; }
+
+  .th-card {
+    position: absolute; left: 1060px; top: 150px; width: 760px; height: 780px; box-sizing: border-box;
+    border-radius: 40px; padding: 70px 56px;
+    background: linear-gradient(170deg, rgba(30, 41, 59, 0.9), rgba(10, 14, 26, 0.92));
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 60px 140px rgba(0, 0, 0, 0.6), 0 0 120px rgba(124, 58, 237, 0.18);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; direction: ltr;
+  }
+  .th-before { position: relative; font: 600 66px var(--mono); color: #94a3b8; letter-spacing: -0.02em; }
+  .th-before::after { content: ""; position: absolute; left: -3%; right: -3%; top: 50%; height: 9px; margin-top: -4px; border-radius: 5px; background: #f87171; rotate: -4deg; box-shadow: 0 0 24px rgba(248, 113, 113, 0.6); }
+  .th-port { position: absolute; right: 0; top: -40px; font: 600 24px var(--mono); letter-spacing: 0.18em; color: #c4b5fd; }
+  .th-arrow { margin: 34px 0 20px; width: 96px; height: 96px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); box-shadow: 0 0 0 12px rgba(124, 58, 237, 0.16), 0 20px 50px rgba(37, 99, 235, 0.45); }
+  .th-arrow svg { width: 50px; height: 50px; fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+  .th-after { font-size: 168px; font-weight: 900; letter-spacing: -0.05em; line-height: 1.05;
+    background: linear-gradient(100deg, #93c5fd 0%, #c4b5fd 52%, #a78bfa 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 50px rgba(124, 58, 237, 0.45)); }
+  .th-after i { font-style: normal; color: #4ade80; }
+  .th-pill { margin-top: 44px; display: flex; align-items: center; gap: 16px; padding: 18px 22px 18px 28px; border-radius: 999px; background: rgba(5, 8, 18, 0.85); border: 1px solid rgba(148, 163, 184, 0.3); font: 500 34px var(--mono); color: #94a3b8; }
+  .th-pill b { color: #fff; font-weight: 600; }
+  .th-pill svg { width: 34px; height: 34px; fill: none; stroke: #60a5fa; stroke-width: 2; }
+  .th-pill em { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: 999px; background: rgba(74, 222, 128, 0.12); font: 600 24px var(--sans); font-style: normal; color: #4ade80; }
+  .th-pill em::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 12px #4ade80; }
+  .th-noport { margin-top: 26px; font-size: 28px; font-weight: 600; color: #86efac; }
+
+  .th-ghost { position: absolute; font: 600 30px var(--mono); color: rgba(148, 163, 184, 0.16); white-space: nowrap; direction: ltr; }
+
+  /* Arabic: text on the right, the card on the left. Arabic letters must
+     not be spaced apart (it breaks the joins). */
+  html[lang="ar"] .th-head, html[lang="ar"] .th-sub, html[lang="ar"] .th-tags span { letter-spacing: 0; }
+  html[lang="ar"] .th-head { left: auto; right: 110px; top: 250px; font-size: 128px; line-height: 1.25; }
+  html[lang="ar"] .th-sub { left: auto; right: 110px; top: 610px; font-size: 42px; line-height: 1.55; }
+  html[lang="ar"] .th-tags { left: auto; right: 110px; }
+  html[lang="ar"] .th-tags span { font-size: 28px; }
+  html[lang="ar"] .th-tags span::before { content: "✓ "; }
+  html[lang="ar"] .th-brand { left: auto; right: 110px; }
+  html[lang="ar"] .th-card { left: 100px; }
+  html[lang="ar"] .th-noport { direction: rtl; }
+</style>
+<script>
+  (function () {
+    var ar = new URLSearchParams(location.search).get("lang") === "ar";
+    document.documentElement.lang = ar ? "ar" : "en";
+    document.documentElement.dir = ar ? "rtl" : "ltr";
+  })();
+</script>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="bg" aria-hidden="true">
+    <div class="aurora a1"></div>
+    <div class="aurora a2"></div>
+    <div class="aurora a3"></div>
+    <div class="grid"></div>
+  </div>
+
+  <span class="th-ghost" style="left:980px;top:40px">192.168.1.60:8123</span>
+  <span class="th-ghost" style="left:960px;top:990px">localhost:8080</span>
+  <span class="th-ghost" style="left:1460px;top:985px">172.17.0.2:5432</span>
+
+  <div class="th-brand ltr"><img src="../../../docs/assets/img/logo.svg" alt=""><b>Locly</b></div>
+
+  <h1 class="th-head">
+    <span class="en">Stop<br>memorizing<br><span class="hot">ports.</span></span>
+    <span class="ar">بطّل تحفظ<br><span class="hot">أرقام البورت.</span></span>
+  </h1>
+  <p class="th-sub">
+    <span class="en">Give your local apps <b>real names</b>. Open them with <b>no port at all</b>.</span>
+    <span class="ar">سمِّ خدماتك المحلية <b>بأسماء سهلة</b>، وافتحها <b>بدون رقم بورت</b>.</span>
+  </p>
+  <div class="th-tags">
+    <span class="en">One-line install</span><span class="en">Web UI + CLI</span><span class="en">AI-agent ready</span><span class="en">100% local</span>
+    <span class="ar">تثبيت بأمر واحد</span><span class="ar">واجهة + Terminal</span><span class="ar">جاهز لوكلاء AI</span><span class="ar">محلي 100%</span>
+  </div>
+
+  <div class="th-card">
+    <span class="th-before">127.0.0.1:3000<span class="th-port">PORT</span></span>
+    <span class="th-arrow"><svg viewBox="0 0 24 24"><path d="M12 4v16M5 13l7 7 7-7"/></svg></span>
+    <span class="th-after">app<i>.local</i></span>
+    <span class="th-pill">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-3 3-4 6-4 9s1 6 4 9c3-3 4-6 4-9s-1-6-4-9z"/></svg>
+      <span>http://<b>app.local</b></span><em>running</em>
+    </span>
+    <span class="th-noport"><span class="en">No port. No DNS. No cloud.</span><span class="ar">بدون بورت. بدون DNS. بدون سحابة.</span></span>
+  </div>
+
+  <div class="vignette" aria-hidden="true"></div>
+</div>
+</body>
+</html>

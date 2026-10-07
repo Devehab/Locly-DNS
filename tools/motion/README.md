@@ -37,3 +37,9 @@ spoken line the time it is said. If a voiceover is re-recorded, re-measure its c
 
 The film's fonts: Inter and IBM Plex Sans Arabic come from `docs/assets/fonts`;
 JetBrains Mono (`film/fonts`, SIL Open Font License) is used only here.
+
+## Thumbnail
+
+`film/thumbnail.html` is a 1920×1080 still for social video posts (LinkedIn puts its own
+play button in the middle, so the middle stays clear); `?lang=ar` for Arabic. The rendered
+JPGs are in `thumbnails/`. To re-render, screenshot the page at a 1920×1080 viewport.
