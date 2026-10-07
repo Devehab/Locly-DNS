@@ -3,7 +3,8 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    # Every branch (Dependabot branches are covered by their pull requests).
+    branches-ignore: ["dependabot/**"]
   workflow_dispatch:
 
 permissions:

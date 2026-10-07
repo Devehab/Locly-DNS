@@ -3,6 +3,7 @@
 package cli
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -10,30 +11,43 @@ import (
 )
 
 const (
-	createNoWindow   = 0x08000000
-	detachedProcess  = 0x00000008
-	installDirSuffix = "LocalDNS"
+	createNewProcessGroup = 0x00000200
+	createNoWindow        = 0x08000000
+	installDirSuffix      = "LocalDNS"
 )
 
-// removeBinary deletes the running localdns.exe. Windows does not allow
-// deleting a running executable, so a short-lived hidden PowerShell process
-// removes it (and the install directory, if empty) after this process exits.
-// The installer's entry in the user PATH is removed immediately.
+// removeBinary removes the running localdns.exe.
+//
+// Windows refuses to delete an executable while it runs, but it does allow
+// renaming it. So the binary is first moved aside, which makes the
+// `localdns` command disappear immediately, and a short-lived hidden
+// PowerShell helper deletes the renamed file (retrying for up to 30 seconds)
+// once this process has exited. The installer's directory is removed too
+// when it ends up empty, and its entry in the user PATH is removed right away.
 func removeBinary(path string) error {
 	dir := filepath.Dir(path)
-	if strings.EqualFold(filepath.Base(dir), installDirSuffix) {
+	ownDir := strings.EqualFold(filepath.Base(dir), installDirSuffix)
+	if ownDir {
 		if err := removeFromUserPath(dir); err != nil {
 			return err
 		}
 	}
-	script := "Start-Sleep -Seconds 2; " +
-		"Remove-Item -LiteralPath " + psQuote(path) + " -Force -ErrorAction SilentlyContinue; "
-	if strings.EqualFold(filepath.Base(dir), installDirSuffix) {
+
+	aside := path + ".uninstalled"
+	_ = os.Remove(aside) // leftover from an earlier attempt
+	if err := os.Rename(path, aside); err != nil {
+		return err
+	}
+
+	script := "$f = " + psQuote(aside) + "; " +
+		"for ($i = 0; $i -lt 60 -and (Test-Path -LiteralPath $f); $i++) { " +
+		"Start-Sleep -Milliseconds 500; Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue }; "
+	if ownDir {
 		script += "if (-not (Get-ChildItem -LiteralPath " + psQuote(dir) + " -Force)) { " +
 			"Remove-Item -LiteralPath " + psQuote(dir) + " -Force -ErrorAction SilentlyContinue }"
 	}
 	cmd := exec.Command("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: createNoWindow | detachedProcess, HideWindow: true}
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: createNoWindow | createNewProcessGroup, HideWindow: true}
 	return cmd.Start()
 }
 

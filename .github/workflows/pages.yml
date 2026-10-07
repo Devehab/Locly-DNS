@@ -1,0 +1,49 @@
+name: Deploy website
+
+# Publishes docs/ (the landing page) to GitHub Pages.
+# Repository setting required once: Settings → Pages → Source: "GitHub Actions".
+
+on:
+  push:
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deployment that is already running; queue the next one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    # Only the default branch publishes the site.
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the site
+        run: |
+          test -f docs/index.html
+          for f in assets/site.css assets/site.js assets/motion.js assets/img/logo.svg assets/img/og.png; do
+            test -f "docs/$f" || { echo "missing docs/$f"; exit 1; }
+          done
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

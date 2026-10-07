@@ -239,10 +239,10 @@ func TestUninstallRemovesEverything(t *testing.T) {
 	if _, err := os.Stat(s.configDir); !os.IsNotExist(err) {
 		t.Fatal("config dir still exists")
 	}
-	if runtime.GOOS != "windows" { // Windows deletes the running exe asynchronously
-		if _, err := os.Stat(s.bin); !os.IsNotExist(err) {
-			t.Fatal("binary still exists")
-		}
+	// On Windows the running exe is renamed aside at once and deleted by a
+	// helper after exit, so the original path is gone either way.
+	if _, err := os.Stat(s.bin); !os.IsNotExist(err) {
+		t.Fatal("binary still exists")
 	}
 }
 

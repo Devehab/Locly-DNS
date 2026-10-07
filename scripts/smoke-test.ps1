@@ -61,10 +61,13 @@ Run @('uninstall', '--yes') | Out-Null
 if ((HostsContent) -ne $original) { Fail 'uninstall changed entries it does not own' }
 if (Test-Path $env:LOCALDNS_CONFIG_DIR) { Fail 'config directory still exists' }
 
-# The running .exe is deleted by a helper process shortly after exit.
-for ($i = 0; $i -lt 30 -and (Test-Path $bin); $i++) { Start-Sleep -Milliseconds 500 }
+# The running .exe is renamed aside immediately, so the command is gone now...
 if (Test-Path $bin) { Fail "binary still exists at $bin" }
+if (Get-Command localdns -ErrorAction SilentlyContinue) { Fail 'localdns still resolves' }
+# ...and a helper deletes the renamed file and the install folder after exit.
 $dir = Split-Path $bin
+for ($i = 0; $i -lt 60 -and (Test-Path $dir); $i++) { Start-Sleep -Milliseconds 500 }
+if (Test-Path $dir) { Fail "install folder still exists: $(Get-ChildItem -Force $dir | Out-String)" }
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if ($userPath -and (($userPath -split ';') | Where-Object { $_.TrimEnd('\') -eq $dir.TrimEnd('\') })) { Fail 'install dir still in user PATH' }
 
