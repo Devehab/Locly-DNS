@@ -6,7 +6,9 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"os/user"
 	"runtime"
+	"strconv"
 )
 
 var errRootBrowser = errors.New("not opening a browser as root; open the URL yourself")
@@ -25,9 +27,18 @@ func openBrowser(url string) error {
 		}
 		return exec.Command("xdg-open", url).Start()
 	}
-	uid, user := os.Getenv("SUDO_UID"), os.Getenv("SUDO_USER")
-	if runtime.GOOS == "darwin" && uid != "" && uid != "0" && user != "" {
-		return exec.Command("launchctl", "asuser", uid, "sudo", "-u", user, "open", url).Start()
+	if runtime.GOOS != "darwin" {
+		return errRootBrowser
 	}
-	return errRootBrowser
+	// Open in the session of the user who ran sudo. The uid must be a plain
+	// number and the account name comes from the system, not the environment.
+	n, err := strconv.Atoi(os.Getenv("SUDO_UID"))
+	if err != nil || n <= 0 {
+		return errRootBrowser
+	}
+	u, err := user.LookupId(strconv.Itoa(n))
+	if err != nil {
+		return errRootBrowser
+	}
+	return exec.Command("launchctl", "asuser", u.Uid, "sudo", "-u", u.Username, "open", url).Start()
 }

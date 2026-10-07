@@ -21,8 +21,10 @@ linters:
       excludes:
         # LocalDNS deliberately runs a fixed set of programs (sudo, the
         # browser opener, PowerShell for uninstall on Windows) with
-        # arguments it controls.
+        # arguments it controls, never through a shell. G702 is the
+        # taint-analysis variant of the same check.
         - G204
+        - G702
         # Paths come from the user's own flags/env or platform defaults;
         # reading and writing them is the tool's purpose.
         - G304
