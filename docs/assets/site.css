@@ -2693,7 +2693,7 @@ html[lang="ar"] .motion-stage .m-label {
   top: calc(112% + (41% - 112%) * var(--q, 0) + (70% - 41%) * var(--r, 0));
   translate: -21% -12%;
   transform: none;
-  opacity: var(--p, 0);
+  opacity: calc(var(--p, 0) * (1 - var(--o, 0)));
   filter: drop-shadow(0 calc(0.4 * var(--u)) calc(0.8 * var(--u)) rgba(0, 0, 0, 0.35));
 }
 
