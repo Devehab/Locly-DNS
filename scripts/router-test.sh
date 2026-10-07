@@ -34,14 +34,17 @@ get() { curl -fsS -m 3 -H "Host: $1" http://127.0.0.1/; }
 
 answering() { curl -s -o /dev/null -m 2 http://127.0.0.1/__localdns/router; }
 
+# A name must work right after `router enable`: people try it immediately.
 wait_for_router() {
-	for _ in $(seq 1 40); do
+	local start=$SECONDS
+	while [ $((SECONDS - start)) -lt 10 ]; do
 		if body=$(get app.test 2>/dev/null) && [ "$body" = "$MARKER" ]; then
+			echo "✓ http://app.test → $body (after $((SECONDS - start))s)"
 			return 0
 		fi
-		sleep 0.5
+		sleep 0.2
 	done
-	fail "http://app.test (no port) did not reach the app"
+	fail "http://app.test (no port) did not reach the app within 10s"
 }
 
 rm -rf "$SANDBOX"
@@ -52,13 +55,22 @@ printf '%s\n' "$MARKER" >"$SANDBOX/www/index.html"
 chmod 644 "$SANDBOX/hosts" "$SANDBOX/www/index.html"
 paths=("--hosts-file=$SANDBOX/hosts" "--config-dir=$SANDBOX/cfg")
 
-python3 -m http.server "$APP_PORT" --bind 127.0.0.1 --directory "$SANDBOX/www" >/dev/null 2>&1 &
-app=$!
-trap 'kill "$app" 2>/dev/null || true; sudo "$BIN" router disable >/dev/null 2>&1 || true' EXIT
-
 if answering; then
 	fail "something already answers on 127.0.0.1:80"
 fi
+
+step "start a test app on 127.0.0.1:$APP_PORT"
+python3 -m http.server "$APP_PORT" --bind 127.0.0.1 --directory "$SANDBOX/www" >/dev/null 2>&1 &
+app=$!
+trap 'kill "$app" 2>/dev/null || true; sudo "$BIN" router disable >/dev/null 2>&1 || true' EXIT
+# Python's server can be slow to start (it looks up its own host name), so
+# wait for it before timing the router.
+started=$SECONDS
+until curl -fsS -m 2 -o /dev/null "http://127.0.0.1:$APP_PORT/"; do
+	[ $((SECONDS - started)) -lt 120 ] || fail "the test app did not start"
+	sleep 0.5
+done
+echo "test app ready after $((SECONDS - started))s"
 
 step "add app.test → 127.0.0.1:$APP_PORT"
 "$BIN" add app.test "127.0.0.1:$APP_PORT" "${paths[@]}" --no-elevate
@@ -75,7 +87,6 @@ fi
 step "sudo localdns router enable"
 sudo "$BIN" router enable "${paths[@]}"
 wait_for_router
-echo "✓ http://app.test → $(get app.test)"
 
 if [ "$(uname -s)" = Darwin ] && [ -e "$legacy" ]; then
 	fail "the 0.2.0 LaunchAgent was not removed"

@@ -25,13 +25,18 @@ function Test-Answering {
     return $LASTEXITCODE -eq 0
 }
 
+# A name must work right after `router enable`: people try it immediately.
 function Wait-Router {
-    for ($i = 0; $i -lt 40; $i++) {
-        if ((Get-Through 'app.test') -eq $marker) { return }
-        Start-Sleep -Milliseconds 500
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    while ($watch.Elapsed.TotalSeconds -lt 10) {
+        if ((Get-Through 'app.test') -eq $marker) {
+            Write-Host ("OK http://app.test -> {0} (after {1:N1}s)" -f $marker, $watch.Elapsed.TotalSeconds)
+            return
+        }
+        Start-Sleep -Milliseconds 200
     }
     & $Bin router
-    throw 'http://app.test (no port) did not reach the app'
+    throw 'http://app.test (no port) did not reach the app within 10s'
 }
 
 function Invoke-Localdns {
@@ -67,13 +72,21 @@ if (Test-Port80) {
 
 $app = Start-Process -FilePath python -ArgumentList '-m', 'http.server', "$appPort", '--bind', '127.0.0.1', '--directory', (Join-Path $Sandbox 'www') -PassThru -WindowStyle Hidden
 try {
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    while ($true) {
+        & curl.exe -fsS -m 2 -o NUL "http://127.0.0.1:$appPort/" 2>$null
+        if ($LASTEXITCODE -eq 0) { break }
+        if ($watch.Elapsed.TotalSeconds -gt 120) { throw 'the test app did not start' }
+        Start-Sleep -Milliseconds 500
+    }
+    Write-Host ("test app ready after {0:N1}s" -f $watch.Elapsed.TotalSeconds)
+
     Step "add app.test -> 127.0.0.1:$appPort"
     Invoke-Localdns add app.test "127.0.0.1:$appPort" @paths
 
     Step 'localdns router enable'
     Invoke-Localdns router enable @paths
     Wait-Router
-    Write-Host "OK http://app.test -> $(Get-Through 'app.test')"
 
     Step 'unknown names are not forwarded'
     $code = & curl.exe -s -o NUL -w '%{http_code}' -m 3 -H 'Host: other.test' http://127.0.0.1/
