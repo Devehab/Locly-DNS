@@ -1,0 +1,373 @@
+// Package ui serves the LocalDNS web interface. It is a thin layer over
+// core.Manager: every action goes through the same business logic as the CLI.
+//
+// The server only ever listens on the loopback interface. It also defends
+// against other websites talking to it through the browser:
+//   - the Host header must be 127.0.0.1:<port> or localhost:<port>, which
+//     defeats DNS-rebinding attacks;
+//   - every API call must carry a per-process random token that is embedded
+//     in the page and unreadable by other origins (CSRF protection);
+//   - cross-origin requests are rejected and no CORS headers are sent;
+//   - a strict Content-Security-Policy forbids inline and third-party scripts.
+package ui
+
+import (
+	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"embed"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"html/template"
+	"io/fs"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/devehab/locly-dns/internal/core"
+)
+
+// LoopbackAddr is the only address the UI listens on.
+const LoopbackAddr = "127.0.0.1"
+
+// DefaultPort is the default UI port.
+const DefaultPort = 7357
+
+// TokenHeader carries the per-process API token.
+const TokenHeader = "X-LocalDNS-Token" //nolint:gosec // G101: a header name, not a credential
+
+//go:embed static
+var staticFS embed.FS
+
+// Options configures the handler.
+type Options struct {
+	// Port the server is reachable on; used to validate Host and Origin.
+	Port int
+	// Version is shown in the page footer.
+	Version string
+	// ReadOnlyHint explains how to get write access when the hosts file is
+	// not writable (e.g. "sudo localdns ui").
+	ReadOnlyHint string
+	// Token overrides the random API token (tests only).
+	Token string
+}
+
+type asset struct {
+	contentType string
+	data        []byte
+}
+
+type server struct {
+	m      *core.Manager
+	opts   Options
+	token  string
+	index  *template.Template
+	assets map[string]asset
+}
+
+// NewHandler returns the UI's HTTP handler.
+func NewHandler(m *core.Manager, opts Options) (http.Handler, error) {
+	token := opts.Token
+	if token == "" {
+		b := make([]byte, 32)
+		if _, err := rand.Read(b); err != nil {
+			return nil, err
+		}
+		token = hex.EncodeToString(b)
+	}
+	index, err := template.ParseFS(staticFS, "static/index.html")
+	if err != nil {
+		return nil, err
+	}
+	// Static files are loaded once, from a fixed list, so requests can only
+	// ever select one of them.
+	assets := map[string]asset{}
+	for name, ctype := range assetTypes {
+		data, err := fs.ReadFile(staticFS, "static/"+name)
+		if err != nil {
+			return nil, err
+		}
+		assets[name] = asset{contentType: ctype, data: data}
+	}
+	s := &server{m: m, opts: opts, token: token, index: index, assets: assets}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", s.serveIndex)
+	mux.HandleFunc("GET /assets/{file}", s.serveAsset)
+	mux.HandleFunc("GET /healthz", s.serveHealth)
+	mux.HandleFunc("GET /api/status", s.api(s.getStatus))
+	mux.HandleFunc("GET /api/entries", s.api(s.listEntries))
+	mux.HandleFunc("POST /api/entries", s.api(s.addEntry))
+	mux.HandleFunc("DELETE /api/entries/{hostname}", s.api(s.removeEntry))
+	return s.secure(mux), nil
+}
+
+// allowedHost reports whether host (a Host header or Origin host) names this
+// server via a loopback name.
+func (s *server) allowedHost(host string) bool {
+	port := strconv.Itoa(s.opts.Port)
+	switch host {
+	case LoopbackAddr + ":" + port, "localhost:" + port:
+		return true
+	}
+	return false
+}
+
+func (s *server) secure(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; "+
+			"img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		h.Set("Cross-Origin-Resource-Policy", "same-origin")
+		h.Set("Cache-Control", "no-store")
+
+		if !s.allowedHost(r.Host) {
+			http.Error(w, "LocalDNS UI is only available at http://"+LoopbackAddr+":"+strconv.Itoa(s.opts.Port), http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// api wraps API handlers with CSRF and origin checks.
+func (s *server) api(fn func(*http.Request) (int, any)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if origin := r.Header.Get("Origin"); origin != "" {
+			host := strings.TrimPrefix(origin, "http://")
+			if host == origin || !s.allowedHost(host) {
+				writeJSON(w, http.StatusForbidden, errorBody("forbidden", "cross-origin requests are not allowed", ""))
+				return
+			}
+		}
+		if site := r.Header.Get("Sec-Fetch-Site"); site != "" && site != "same-origin" && site != "none" {
+			writeJSON(w, http.StatusForbidden, errorBody("forbidden", "cross-site requests are not allowed", ""))
+			return
+		}
+		got := r.Header.Get(TokenHeader)
+		if subtle.ConstantTimeCompare([]byte(got), []byte(s.token)) != 1 {
+			writeJSON(w, http.StatusForbidden, errorBody("forbidden", "missing or invalid "+TokenHeader+" header",
+				"Reload the LocalDNS page."))
+			return
+		}
+		if r.Method == http.MethodPost && !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			writeJSON(w, http.StatusUnsupportedMediaType, errorBody("invalid_input", "expected a JSON body", ""))
+			return
+		}
+		status, body := fn(r)
+		writeJSON(w, status, body)
+	}
+}
+
+func (s *server) serveIndex(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	data := struct {
+		Token   string
+		Version string
+	}{s.token, s.opts.Version}
+	if err := s.index.Execute(w, data); err != nil {
+		http.Error(w, "template error", http.StatusInternalServerError)
+	}
+}
+
+var assetTypes = map[string]string{
+	"app.js":      "text/javascript; charset=utf-8",
+	"style.css":   "text/css; charset=utf-8",
+	"favicon.svg": "image/svg+xml",
+}
+
+func (s *server) serveAsset(w http.ResponseWriter, r *http.Request) {
+	a, ok := s.assets[r.PathValue("file")]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", a.contentType)
+	_, _ = w.Write(a.data)
+}
+
+func (s *server) serveHealth(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("X-LocalDNS", "1")
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "app": "localdns"})
+}
+
+type statusResponse struct {
+	core.StatusReport
+	Version      string `json:"version"`
+	ReadOnlyHint string `json:"read_only_hint,omitempty"`
+}
+
+func (s *server) getStatus(*http.Request) (int, any) {
+	report, err := s.m.Status()
+	if err != nil {
+		return s.errorResponse(err)
+	}
+	resp := statusResponse{StatusReport: report, Version: s.opts.Version}
+	if !report.Writable {
+		resp.ReadOnlyHint = s.opts.ReadOnlyHint
+	}
+	return http.StatusOK, resp
+}
+
+func (s *server) listEntries(*http.Request) (int, any) {
+	list, err := s.m.List()
+	if err != nil {
+		return s.errorResponse(err)
+	}
+	return http.StatusOK, map[string]any{"entries": list}
+}
+
+type addRequest struct {
+	Hostname string `json:"hostname"`
+	Address  string `json:"address"`
+	Force    bool   `json:"force"`
+}
+
+func (s *server) addEntry(r *http.Request) (int, any) {
+	var req addRequest
+	dec := json.NewDecoder(http.MaxBytesReader(nil, r.Body, 16<<10))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&req); err != nil {
+		return http.StatusBadRequest, errorBody("invalid_input", "invalid JSON body: "+err.Error(), "")
+	}
+	res, err := s.m.Add(req.Hostname, req.Address, core.AddOptions{Force: req.Force})
+	if err != nil {
+		return s.errorResponse(err)
+	}
+	status := http.StatusOK
+	if res.Action == core.ActionAdded {
+		status = http.StatusCreated
+	}
+	return status, res
+}
+
+func (s *server) removeEntry(r *http.Request) (int, any) {
+	res, err := s.m.Remove(r.PathValue("hostname"))
+	if err != nil {
+		return s.errorResponse(err)
+	}
+	return http.StatusOK, res
+}
+
+func (s *server) errorResponse(err error) (int, any) {
+	e := core.AsError(err)
+	hint := e.Hint
+	status := http.StatusInternalServerError
+	switch e.Code {
+	case core.CodeInvalidInput:
+		status = http.StatusBadRequest
+	case core.CodeNotFound:
+		status = http.StatusNotFound
+	case core.CodeExists, core.CodeConflict, core.CodeNotManaged, core.CodeHostsInvalid, core.CodeConfigInvalid:
+		status = http.StatusConflict
+	case core.CodePermission:
+		status = http.StatusForbidden
+		hint = s.opts.ReadOnlyHint
+	}
+	return status, errorBody(string(e.Code), e.Message, hint)
+}
+
+func errorBody(code, message, hint string) map[string]any {
+	body := map[string]any{"code": code, "message": message}
+	if hint != "" {
+		body["hint"] = hint
+	}
+	return map[string]any{"error": body}
+}
+
+func writeJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	_ = enc.Encode(v)
+}
+
+// Listen opens the UI listener on the loopback interface. Port 0 picks a free
+// port.
+func Listen(port int) (net.Listener, error) {
+	return net.Listen("tcp", net.JoinHostPort(LoopbackAddr, strconv.Itoa(port)))
+}
+
+// Serve runs the HTTP server on ln until ctx is canceled, then shuts down
+// gracefully.
+func Serve(ctx context.Context, ln net.Listener, h http.Handler) error {
+	srv := &http.Server{
+		Handler:           h,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    64 << 10,
+	}
+	errc := make(chan error, 1)
+	go func() { errc <- srv.Serve(ln) }()
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+		if err := <-errc; err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	}
+}
+
+// URL returns the address users open in a browser.
+func URL(port int) string {
+	return fmt.Sprintf("http://%s:%d", LoopbackAddr, port)
+}
+
+// Probe reports whether a LocalDNS UI is already answering on port. It only
+// ever contacts the loopback interface.
+func Probe(port int) bool {
+	client := &http.Client{
+		Timeout: time.Second,
+		Transport: &http.Transport{
+			Proxy: nil, // never route a loopback probe through a proxy
+		},
+	}
+	resp, err := client.Get(URL(port) + "/healthz")
+	if err != nil {
+		return false
+	}
+	defer func() { _ = resp.Body.Close() }()
+	return resp.StatusCode == http.StatusOK && resp.Header.Get("X-LocalDNS") == "1"
+}
+
+// AvailabilityCheck is a doctor check that the UI can start on port.
+func AvailabilityCheck(port int) core.Check {
+	c := core.Check{ID: "ui_available", Name: "Local UI available", Status: core.CheckPass}
+	if _, err := fs.Stat(staticFS, "static/index.html"); err != nil {
+		c.Status = core.CheckFail
+		c.Message = "web assets missing from this build"
+		c.Fix = "Reinstall LocalDNS."
+		return c
+	}
+	ln, err := Listen(port)
+	if err == nil {
+		_ = ln.Close()
+		c.Message = URL(port) + " (localhost only)"
+		return c
+	}
+	if Probe(port) {
+		c.Message = "already running at " + URL(port)
+		return c
+	}
+	c.Status = core.CheckWarn
+	c.Message = fmt.Sprintf("port %d is used by another program", port)
+	c.Fix = fmt.Sprintf("Start the UI on another port: localdns ui --port %d", port+1)
+	return c
+}

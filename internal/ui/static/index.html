@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="localdns-token" content="{{.Token}}">
+  <title>LocalDNS</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/style.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <main class="page">
+    <header class="top">
+      <div class="brand">
+        <img src="/assets/favicon.svg" alt="" width="36" height="36">
+        <div>
+          <h1>LocalDNS</h1>
+          <p class="subtitle">Your local services</p>
+        </div>
+      </div>
+      <button type="button" id="add-button" class="btn btn-primary">+ Add Host</button>
+    </header>
+
+    <div id="banner" class="banner" role="alert" hidden></div>
+
+    <section class="card" aria-labelledby="hosts-heading">
+      <h2 id="hosts-heading" class="sr-only">Hosts</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Hostname</th>
+              <th scope="col">IP</th>
+              <th scope="col">Port</th>
+              <th scope="col">URL</th>
+              <th scope="col">Status</th>
+              <th scope="col"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div id="empty" class="empty" hidden>
+        <p class="empty-title">No hosts yet</p>
+        <p>Give a local service a friendly name, like <code>app.local</code> → <code>127.0.0.1:3000</code>.</p>
+      </div>
+      <div id="loading" class="empty">Loading…</div>
+    </section>
+
+    <footer class="footer">
+      <span id="footer-hosts"></span>
+      <span>LocalDNS {{.Version}} · running on localhost only</span>
+    </footer>
+  </main>
+
+  <dialog id="add-dialog" aria-labelledby="add-title">
+    <form id="add-form" novalidate>
+      <h2 id="add-title">Add Host</h2>
+      <label for="add-hostname">Hostname</label>
+      <input id="add-hostname" name="hostname" placeholder="app.local" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <label for="add-address">Address</label>
+      <input id="add-address" name="address" placeholder="127.0.0.1:3000" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <p class="help">IP address with an optional port, e.g. <code>127.0.0.1:3000</code> or <code>192.168.1.60</code>.</p>
+      <p id="add-error" class="form-error" role="alert" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="add-submit">Add</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="delete-dialog" aria-labelledby="delete-title">
+    <form id="delete-form">
+      <h2 id="delete-title">Delete <span id="delete-name"></span>?</h2>
+      <p>This will remove the LocalDNS entry<br>from your hosts configuration.</p>
+      <p id="delete-error" class="form-error" role="alert" hidden></p>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn btn-danger" id="delete-submit">Delete</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+</body>
+</html>

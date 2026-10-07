@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Build with the latest patch of a supported Go release (go.mod states the
+  # minimum version needed to compile from source).
+  GO_VERSION: "1.26.x"
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Format & Lint (${{ matrix.goos }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - name: Format
+        if: matrix.goos == 'linux'
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"; echo "$unformatted"; gofmt -d .; exit 1
+          fi
+      - name: Vet
+        run: go vet ./...
+        env:
+          GOOS: ${{ matrix.goos }}
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        env:
+          GOOS: ${{ matrix.goos }}
+        with:
+          version: v2.14.0
+      - name: Shell scripts
+        if: matrix.goos == 'linux'
+        run: shellcheck install.sh scripts/*.sh
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest # linux/amd64
+            race: -race
+          - os: ubuntu-24.04-arm # linux/arm64
+            race: -race
+          - os: macos-latest # darwin/arm64
+            race: -race
+          - os: macos-15-intel # darwin/amd64
+            race: -race
+          - os: windows-latest # windows/amd64
+            race: ""
+          - os: windows-11-arm # windows/arm64
+            race: ""
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      # All tests use temporary hosts files; the runner's real hosts file is
+      # never read or written.
+      - name: Unit tests
+        run: go test ${{ matrix.race }} -count=1 ./cmd/... ./internal/...
+      - name: Integration tests
+        run: go test ${{ matrix.race }} -count=1 ./test/integration/...
+      - name: CLI tests
+        run: go test -count=1 ./test/cli/...
+
+  build:
+    name: Build release artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - name: Build all platforms
+        run: go run ./tools/release -version "0.0.0-ci.${{ github.run_number }}" -out dist
+      - name: Add installers
+        run: cp install.sh install.ps1 dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # The one-command install, tested for real: `curl ... | sh` (or `irm ... |
+  # iex` on Windows) against the archives built above, followed by the full
+  # info → add → list --json → remove --yes → uninstall --yes workflow.
+  install:
+    name: One-line install (${{ matrix.os }})
+    needs: build
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-15-intel, windows-latest, windows-11-arm]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Install with curl | sh and run the workflow
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          LOCALDNS_BASE_URL: http://127.0.0.1:8765
+        run: |
+          set -euo pipefail
+          go build -o "$RUNNER_TEMP/serve" ./tools/serve
+          "$RUNNER_TEMP/serve" -dir dist -port 8765 &
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8765/checksums.txt && break
+            sleep 1
+          done
+          if command -v localdns; then echo "localdns is already installed"; exit 1; fi
+          curl -fsSL http://127.0.0.1:8765/install.sh | sh
+          bash scripts/smoke-test.sh
+
+      - name: Install with irm | iex and run the workflow
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          LOCALDNS_BASE_URL: http://127.0.0.1:8765
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go build -o "$env:RUNNER_TEMP\serve.exe" ./tools/serve
+          if ($LASTEXITCODE -ne 0) { throw 'building the download server failed' }
+          $dist = (Resolve-Path dist).Path
+          $srv = Start-Process -FilePath "$env:RUNNER_TEMP\serve.exe" -ArgumentList '-dir', $dist, '-port', '8765' -PassThru -WindowStyle Hidden
+          try {
+            for ($i = 0; $i -lt 30; $i++) {
+              try { Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8765/checksums.txt | Out-Null; break } catch { Start-Sleep -Seconds 1 }
+            }
+            if (Get-Command localdns -ErrorAction SilentlyContinue) { throw 'localdns is already installed' }
+            irm http://127.0.0.1:8765/install.ps1 | iex
+            & ./scripts/smoke-test.ps1
+          } finally {
+            Stop-Process -Id $srv.Id -ErrorAction SilentlyContinue
+          }
+
+  ci-ok:
+    name: CI passed
+    if: always()
+    needs: [lint, test, build, install]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "Some jobs failed"; exit 1
+          fi

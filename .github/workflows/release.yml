@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  # Build with the latest patch of a supported Go release (go.mod states the
+  # minimum version needed to compile from source).
+  GO_VERSION: "1.26.x"
+
+jobs:
+  test:
+    name: Test before release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - run: go test -race -count=1 ./...
+
+  release:
+    name: Publish GitHub release
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - name: Build release artifacts
+        run: go run ./tools/release -version "${GITHUB_REF_NAME}" -out dist
+      - name: Add installers
+        run: cp install.sh install.ps1 dist/
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "LocalDNS $GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag
+
+  # After publishing, install from the real public URL on every platform.
+  verify:
+    name: Verify install (${{ matrix.os }})
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-15-intel, windows-latest, windows-11-arm]
+    env:
+      LOCALDNS_REPO: ${{ github.repository }}
+      LOCALDNS_VERSION: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: curl | sh
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/install.sh" | sh
+          localdns version | grep -F "${GITHUB_REF_NAME#v}"
+          bash scripts/smoke-test.sh
+      - name: irm | iex
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          irm "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:GITHUB_REF_NAME/install.ps1" | iex
+          & ./scripts/smoke-test.ps1

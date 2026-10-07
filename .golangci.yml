@@ -1,0 +1,44 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - bodyclose
+    - errorlint
+    - gosec
+    - misspell
+    - nolintlint
+    - unconvert
+    - usestdlibvars
+  settings:
+    misspell:
+      locale: US
+    gosec:
+      excludes:
+        # LocalDNS deliberately runs a fixed set of programs (sudo, the
+        # browser opener, PowerShell for uninstall on Windows) with
+        # arguments it controls.
+        - G204
+        # Paths come from the user's own flags/env or platform defaults;
+        # reading and writing them is the tool's purpose.
+        - G304
+        # The hosts file and config are world-readable by design (0644).
+        - G302
+        - G306
+  exclusions:
+    presets:
+      - std-error-handling
+    rules:
+      # Test helpers and fixtures may use unchecked conversions and the like.
+      - path: _test\.go
+        linters:
+          - gosec
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
