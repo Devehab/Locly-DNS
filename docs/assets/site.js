@@ -29,7 +29,51 @@
   if (toggle) {
     toggle.addEventListener("click", function () {
       setLang(root.lang === "ar" ? "en" : "ar", true);
+      resetFilms();
     });
+  }
+
+  // -------------------------------------------------------------------- film
+  // One narrated video per language; only the visible one plays. Until it
+  // starts, the poster shows a big play button; then the browser's own
+  // controls take over. Without JavaScript the native controls stay.
+  var films = Array.prototype.slice.call(document.querySelectorAll(".film-video"));
+  var filmPlay = document.querySelector(".film-play");
+
+  function currentFilm() {
+    for (var i = 0; i < films.length; i++) {
+      if (films[i].classList.contains(root.lang)) return films[i];
+    }
+    return films[0];
+  }
+
+  function resetFilms() {
+    films.forEach(function (v) {
+      if (!v.paused) v.pause();
+      v.controls = false;
+    });
+    if (filmPlay) filmPlay.hidden = false;
+  }
+
+  if (filmPlay && films.length) {
+    films.forEach(function (v) {
+      v.addEventListener("play", function () {
+        filmPlay.hidden = true;
+        v.controls = true;
+      });
+      v.addEventListener("ended", function () {
+        v.controls = false;
+        filmPlay.hidden = false;
+      });
+    });
+    filmPlay.addEventListener("click", function () {
+      var v = currentFilm();
+      v.controls = true;
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+      v.focus();
+    });
+    resetFilms();
   }
 
   // -------------------------------------------------------------------- tabs

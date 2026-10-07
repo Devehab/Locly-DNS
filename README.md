@@ -612,7 +612,7 @@ internal/elevate/      one-shot sudo re-execution
 test/integration/      CLI + UI + core together; security audits
 test/cli/              black-box tests of the built binary
 tools/release/         cross-compile and package release archives
-tools/motion/          render the landing-page story animation to MP4
+tools/motion/          the narrated landing-page film (English + Arabic) and its MP4 renderer
 scripts/smoke-test.*   post-install end-to-end check (used by CI)
 docs/                  bilingual (English/Arabic) landing page for GitHub Pages
 ```
@@ -631,10 +631,10 @@ docs/                  bilingual (English/Arabic) landing page for GitHub Pages
 
 **Website:** `docs/` is a static, dependency-free landing page in English and Arabic
 (language switch with full right-to-left layout, light/dark themes, self-hosted fonts, no
-trackers), including a ~35-second story animation ("Remember names, not numbers") that
-`tools/motion/` can export to MP4 for social media. To publish it, open **Settings → Pages**, choose **Deploy from a branch**, and
-select `main` and the `/docs` folder. Preview it locally with
-`go run ./tools/serve -dir docs -port 8080` and open `http://127.0.0.1:8080`.
+trackers), with a narrated one-minute film ("Remember names, not numbers") in each language,
+rendered from `tools/motion/` (see its README). The `Deploy website` workflow publishes it
+together with the terminal guide; set **Settings → Pages → Source** to **GitHub Actions** once.
+Preview it locally with `go run ./tools/serve -dir docs -port 8080` and open `http://127.0.0.1:8080`.
 
 **Releasing:** push a tag like `v0.1.0`. The release workflow tests, builds the archives and
 `checksums.txt`, publishes the GitHub release (with `install.sh` and `install.ps1` attached),

@@ -1,0 +1,56 @@
+WEBVTT
+
+00:00.000 --> 00:01.900
+Every time you work on a local app,
+
+00:01.980 --> 00:06.900
+are you still remembering numbers like…
+127.0.0.1… port 3000?
+
+00:07.300 --> 00:10.200
+Why make local development
+harder than it needs to be?
+
+00:10.500 --> 00:12.900
+With Locly, it starts with just one line.
+
+00:13.500 --> 00:16.300
+Install it with a single command…
+and you're ready.
+
+00:16.760 --> 00:19.900
+Then open the user interface,
+add your local services,
+
+00:20.000 --> 00:22.600
+and give each one a name
+you can actually remember.
+
+00:22.940 --> 00:27.550
+Instead of 127.0.0.1…
+you get app.local.
+
+00:27.580 --> 00:31.300
+No domain registration.
+No complicated DNS setup.
+
+00:31.840 --> 00:33.900
+And when you want more control as a developer,
+
+00:34.100 --> 00:36.500
+Locly also gives you a terminal interface.
+
+00:37.450 --> 00:41.200
+Add, edit, enable, or remove services
+with simple commands…
+
+00:41.400 --> 00:44.300
+and even use JSON
+for automation and AI tools.
+
+00:44.600 --> 00:47.700
+Everything stays local, simple, and organized.
+
+00:48.000 --> 00:52.900
+Locly.
+Remember names, not numbers.

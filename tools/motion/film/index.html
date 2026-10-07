@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Locly film</title>
+<link rel="stylesheet" href="film.css">
+<script src="film.js" defer></script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-3 3-4 6-4 9s1 6 4 9c3-3 4-6 4-9s-1-6-4-9z"/></symbol>
+  <symbol id="i-dns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01M11 7h6M11 17h6"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.6L19.5 10.5l-5.6 1.9L12 18l-1.9-5.6L4.5 10.5l5.6-1.9z"/><path d="M19 3v4M17 5h4M5 17v4M3 19h4"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><rect x="9.5" y="13" width="5" height="4.5" rx="1"/><path d="M10.5 13v-1a1.5 1.5 0 0 1 3 0v1"/></symbol>
+  <symbol id="i-feather" viewBox="0 0 24 24"><path d="M20.2 12.2a6 6 0 0 0-8.5-8.5L5 10.5V19h8.5z"/><path d="M16 8L2 22M17.5 15H9"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 9h.01M7 13h.01M7 17h.01M10.5 9h6.5M10.5 13h6.5M10.5 17h4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+</svg>
+
+<div class="stage" id="stage">
+  <div class="bg" aria-hidden="true">
+    <div class="aurora a1"></div>
+    <div class="aurora a2"></div>
+    <div class="aurora a3"></div>
+    <div class="grid"></div>
+  </div>
+
+  <!-- ============================================================ 1. hook -->
+  <section class="scene s-hook" data-in="0" data-out="with-0.3" data-shake="n127 n0a n0b n1 n3000"
+           data-v="gl@why/0.3 gx@with-0.5/0.4">
+    <div class="alarm" data-v="a@why-0.1/0.8"></div>
+    <div class="cam">
+      <div class="top-lines" data-v="o@why-0.35/0.4">
+        <p class="line l1">
+          <span class="en" data-words="0.02 0.34 0.6 0.76 0.9 1.08 1.2 1.4">Every time you work on a local app,</span>
+          <span class="ar" data-words="0.05 0.44 0.9 1.1 1.4 1.8 2.0 2.3">تخيّل إنك كل مرة تشتغل على تطبيق محلي،</span>
+        </p>
+        <p class="line l2">
+          <span class="en" data-words="1.98 2.12 2.26 2.56 2.92 3.38">are you still remembering <b class="g">numbers</b> like…</span>
+          <span class="ar" data-words="2.78 3.3 3.88 4.3">لازم تتذكّر <b class="g">أرقام</b> مثل…</span>
+        </p>
+      </div>
+
+      <div class="mini-term ltr" data-v="p@0.15/0.6 o@nums-0.05/0.5:io">
+        <div class="tbar"><i></i><i></i><i></i><span>~/my-app</span></div>
+        <div class="tbody">
+          <div><span class="pr">$</span> <span class="keys" data-type="0.5/0.55" data-text="npm run dev"></span></div>
+          <div class="ln" data-v="q@1.25/0.3"><span class="dim">  ➜  Local:  </span> http://<span class="num">127.0.0.1:3000</span>/</div>
+          <div class="ln" data-v="q@1.45/0.3"><span class="dim">  ➜  Network:</span> http://<span class="num">192.168.1.60:3000</span>/</div>
+        </div>
+      </div>
+
+      <div class="chips" data-sfx="pop@nums pop@nums+0.27 pop@nums+0.54 pop@why+0.1 pop@why+0.3">
+        <span class="chip" style="--x:90px;--y:330px;--r:-7deg;--ph:0.2" data-v="p@nums/0.5:back">127.0.0.1:8080</span>
+        <span class="chip note" style="--x:1480px;--y:300px;--r:5deg;--ph:1.9" data-v="p@nums+0.09/0.5:back">API → :3002</span>
+        <span class="chip" style="--x:1380px;--y:800px;--r:4deg;--ph:3.1" data-v="p@nums+0.18/0.5:back">192.168.1.60:8123</span>
+        <span class="chip" style="--x:110px;--y:770px;--r:6deg;--ph:4.4" data-v="p@nums+0.27/0.5:back">localhost:5173</span>
+        <span class="chip" style="--x:1560px;--y:930px;--r:-5deg;--ph:2.6" data-v="p@nums+0.36/0.5:back">10.0.0.5:9000</span>
+        <span class="chip note" style="--x:330px;--y:930px;--r:-4deg;--ph:0.9" data-v="p@nums+0.45/0.5:back">DB → 5432 ?</span>
+        <span class="chip" style="--x:1630px;--y:500px;--r:3deg;--ph:5.2" data-v="p@nums+0.54/0.5:back">0.0.0.0:8000</span>
+        <span class="chip" style="--x:820px;--y:950px;--r:3deg;--ph:3.7" data-v="p@nums+0.63/0.5:back">172.17.0.2:5432</span>
+        <span class="chip" style="--x:50px;--y:560px;--r:-3deg;--ph:1.2" data-v="p@nums+0.72/0.5:back">:4200</span>
+        <span class="chip note" style="--x:1010px;--y:800px;--r:-6deg;--ph:2.2" data-v="p@nums+0.81/0.5:back">HA = .60:8123 ??</span>
+        <!-- more pile up on "why" -->
+        <span class="chip" style="--x:250px;--y:150px;--r:4deg;--ph:0.5" data-v="p@why+0.1/0.45:back">127.0.0.1:5000</span>
+        <span class="chip" style="--x:1440px;--y:120px;--r:-3deg;--ph:4.1" data-v="p@why+0.2/0.45:back">192.168.0.12:443</span>
+        <span class="chip note" style="--x:1600px;--y:680px;--r:8deg;--ph:2.9" data-v="p@why+0.3/0.45:back">WHICH PORT?!</span>
+        <span class="chip" style="--x:60px;--y:455px;--r:-8deg;--ph:3.3" data-v="p@why+0.4/0.45:back">:8888</span>
+        <span class="chip" style="--x:1170px;--y:980px;--r:-4deg;--ph:1.6" data-v="p@why+0.5/0.45:back">10.0.0.7:6443</span>
+        <span class="chip" style="--x:640px;--y:110px;--r:2deg;--ph:5.7" data-v="p@why+0.6/0.45:back">localhost:3001</span>
+      </div>
+
+      <div class="mega ltr" data-v="u@why-0.15/0.6:io" data-sfx="thud@n127 thud@n0a thud@n0b thud@n1 thud@n3000">
+        <div class="mega-row">
+          <span class="mg" data-v="p@n127/0.4:back">127</span><span class="mg" data-v="p@n0a/0.4:back">.0</span><span class="mg" data-v="p@n0b/0.4:back">.0</span><span class="mg" data-v="p@n1/0.4:back">.1</span><span class="mg port" data-v="p@n3000/0.4:back">:3000</span>
+        </div>
+        <span class="port-label" data-v="p@port/0.35:back">port</span>
+        <span class="ring" data-v="r@n127/0.8:out"></span>
+        <span class="ring violet" data-v="r@n3000/0.8:out"></span>
+      </div>
+
+      <h2 class="why">
+        <span class="en" data-words="7.32 7.84 8.08 8.32 8.8 9.16 9.38 9.5 9.7 9.88">Why make local development<br><b class="bad">harder</b> than it needs to be?</span>
+        <span class="ar" data-words="9.86 10.2 10.5">ليش كل <b class="bad">هالتعقيد؟</b></span>
+      </h2>
+    </div>
+  </section>
+
+  <!-- ===================================================== 2. one line -->
+  <section class="scene s-install" data-in="with-0.15" data-out="then-0.3" data-shake="locly" data-sfx="whoosh@with-0.2">
+    <div class="cam">
+      <div class="lockup ltr" data-v="u@install-0.1/0.7:io">
+        <span class="logo-wrap">
+          <img class="logo" src="../../../docs/assets/img/logo.svg" alt="" data-v="p@locly/0.6:back" data-sfx="boom@locly">
+          <span class="ring big" data-v="r@locly/1.0:out"></span>
+          <span class="ring big two" data-v="r@locly+0.15/1.1:out"></span>
+        </span>
+        <span class="word" data-v="q@locly+0.12/0.55:out">Locly</span>
+      </div>
+
+      <p class="one-line" data-v="o@install-0.1/0.35">
+        <span class="en" data-words="11.34 11.46 11.68 11.92 12.2">it starts with just <b class="g">one line.</b></span>
+        <span class="ar" data-words="11.85 12.22 12.58 13.04">كل شيء يبدأ <b class="g">بسطر واحد.</b></span>
+      </p>
+      <span class="beam" data-v="p@oneLine/0.7:io o@install+0.15/0.3"></span>
+
+      <div class="term install-term ltr" data-v="p@install-0.05/0.55:io" data-sfx="whoosh@install-0.1">
+        <div class="tbar"><i></i><i></i><i></i><span>Terminal</span></div>
+        <div class="tbody">
+          <div class="cmd"><span class="pr">$</span> <span class="keys" data-type="install+0.12>typed" data-text="curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh"></span></div>
+          <div class="ln dim" data-v="q@typed+0.12/0.25">Downloading LocalDNS (darwin/arm64)...</div>
+          <div class="ln dim" data-v="q@typed+0.3/0.25">Checksum verified.</div>
+          <div class="ln ok" data-v="q@ready-0.2/0.25">✓ localdns 0.4.0 installed to /usr/local/bin/localdns</div>
+        </div>
+      </div>
+
+      <div class="ready" data-v="p@ready/0.55:back b@ready/0.8:out" data-sfx="ding@ready">
+        <svg class="check" viewBox="0 0 24 24"><use href="#i-check"/></svg>
+        <span class="en">Ready</span><span class="ar">جاهز</span>
+        <i class="spark" style="--a:0deg"></i><i class="spark" style="--a:36deg"></i><i class="spark" style="--a:72deg"></i>
+        <i class="spark" style="--a:108deg"></i><i class="spark" style="--a:144deg"></i><i class="spark" style="--a:180deg"></i>
+        <i class="spark" style="--a:216deg"></i><i class="spark" style="--a:252deg"></i><i class="spark" style="--a:288deg"></i>
+        <i class="spark" style="--a:324deg"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================== 3. the UI -->
+  <section class="scene s-ui" data-in="then-0.25" data-out="instead-0.3" data-sfx="whoosh@then-0.3">
+    <div class="cam">
+      <div class="carousel">
+        <p class="hl" data-v="o@add-0.32/0.25">
+          <span class="en" data-words="16.76 17.08 17.46 17.66">Then open the <b class="g">user interface</b></span>
+          <span class="ar" data-words="17.3 18.3 18.7">بعدها، افتح <b class="g">واجهة المستخدم</b></span>
+        </p>
+        <p class="hl" data-v="o@give-0.32/0.25">
+          <span class="en" data-words="18.68 18.86 19.0 19.2"><b class="g">Add</b> your local services</span>
+          <span class="ar" data-words="19.86 20.48 21.0"><b class="g">وأضف</b> خدماتك المحلية</span>
+        </p>
+        <p class="hl">
+          <span class="en" data-words="20.08 20.14 20.32 20.68 20.84 20.94 21.1 21.28 21.44 21.94">and give each one a <b class="g">name</b> you can actually remember</span>
+          <span class="ar" data-words="21.46 22.32 22.55 23.22 23.48 23.85">وخصّص لكل خدمة <b class="g">اسم</b> سهل تتذكّره</span>
+        </p>
+      </div>
+
+      <div class="browser ltr" data-v="p@open-0.1/0.7:out">
+        <div class="bbar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="addr"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg><span>http://<span class="keys" data-type="open+0.05/0.4" data-text="localdns.local"></span></span></span>
+        </div>
+        <span class="loadbar" data-v="l@open+0.45/0.4:io f@open+0.85/0.25"></span>
+        <div class="dash" data-v="c@open+0.6/0.4">
+          <div class="dhead">
+            <img src="../../../docs/assets/img/logo.svg" alt="">
+            <div><b>LocalDNS</b><small>Your local services</small></div>
+            <span class="dbtn">Terminal guide</span>
+            <span class="dbtn primary" id="btn-add" data-v="k@add-0.04/0.12 kk@add+0.08/0.2">+ Add Host</span>
+          </div>
+          <div class="drouter">
+            <div><b>Port-free URLs <em>On</em></b><small>Open http://app.local instead of http://app.local:3000.</small></div>
+            <span class="switch on"></span>
+          </div>
+          <div class="dtable">
+            <div class="tr th"><span>HOSTNAME</span><span>IP</span><span>PORT</span><span>URL</span><span>STATUS</span><span></span></div>
+            <div class="tr new" data-v="n@submit+0.2/0.45:io h@remember/0.5 hx@remember+0.6/0.8">
+              <span class="host">app.local</span><span>127.0.0.1</span><span>3000</span><span class="url">http://app.local</span><span class="st"><i class="switch on sm"></i><i class="dot"></i>Active</span><span class="acts"><em>Edit</em><em class="del">Delete</em></span>
+            </div>
+            <div class="tr"><span class="host">api.local</span><span>127.0.0.1</span><span>3002</span><span class="url">http://api.local</span><span class="st"><i class="switch on sm"></i><i class="dot"></i>Active</span><span class="acts"><em>Edit</em><em class="del">Delete</em></span></div>
+            <div class="tr"><span class="host">ha.local</span><span>192.168.1.60</span><span>8123</span><span class="url">http://ha.local:8123</span><span class="st"><i class="switch on sm"></i><i class="dot"></i>Active</span><span class="acts"><em>Edit</em><em class="del">Delete</em></span></div>
+            <div class="tr"><span class="host">nas.lan</span><span>192.168.1.20</span><span>—</span><span class="url">http://nas.lan</span><span class="st"><i class="switch on sm"></i><i class="dot"></i>Active</span><span class="acts"><em>Edit</em><em class="del">Delete</em></span></div>
+          </div>
+        </div>
+
+        <div class="dim-layer" data-v="d@add+0.1/0.3 dx@submit+0.05/0.3"></div>
+        <div class="dialog" data-v="d@add+0.1/0.35:back dx@submit+0.05/0.25">
+          <b class="dtitle">Add Host</b>
+          <label>Hostname</label>
+          <div class="input focus-a" data-v="fa@add+0.4/0.2 fb@addrType-0.1/0.2"><span class="keys" data-type="hostType/0.32" data-text="app"></span><span class="suffix" data-v="s@name+0.02/0.35:back">.local</span><i class="caret"></i></div>
+          <div class="sufs"><span class="sfl">Ending:</span><span class="sf">.localhost</span><span class="sf" id="chip-local" data-v="s@name/0.2">.local</span><span class="sf">.test</span><span class="sf">.internal</span><span class="sf">.lan</span></div>
+          <label>Address</label>
+          <div class="input focus-b" data-v="fb@addrType-0.1/0.2 fc@name-0.2/0.2"><span class="keys" data-type="addrType/0.6" data-text="127.0.0.1:3000"></span><i class="caret"></i></div>
+          <small>IP address with an optional port, e.g. 127.0.0.1:3000 or 192.168.1.60.</small>
+          <div class="dacts"><span class="dbtn">Cancel</span><span class="dbtn primary" id="btn-submit" data-v="k@submit-0.04/0.12 kk@submit+0.08/0.2">Add</span></div>
+        </div>
+      </div>
+
+      <svg class="cursor" viewBox="0 0 24 24" data-v="p@open+0.8/0.3 o@submit+0.7/0.4"
+           data-path="0=1260,800 open+0.9=1260,800 add-0.08=#btn-add add+0.5=#btn-add name-0.55=1300,560 name-0.05=#chip-local submit-0.45=#chip-local submit-0.05=#btn-submit"
+           data-sfx="click@add click@name click@submit"><path d="M5 3l14 8-6.2 1.6L10 19z"/></svg>
+      <span class="click-ring" data-path="0=#btn-add" data-v="c@add/0.45:out"></span>
+      <span class="click-ring" data-path="0=#chip-local" data-v="c@name/0.45:out"></span>
+      <span class="click-ring" data-path="0=#btn-submit" data-v="c@submit/0.45:out"></span>
+    </div>
+  </section>
+
+  <!-- ================================================ 4. numbers → name -->
+  <section class="scene s-swap" data-in="instead-0.25" data-out="more-0.1" data-shake="i127 i0a i0b i1 app+0.2" data-sfx="whoosh@instead-0.3">
+    <div class="cam">
+      <p class="label" data-v="o@youget-0.32/0.25">
+        <span class="en" data-words="22.98 23.28">Instead of</span>
+        <span class="ar" data-words="24.8">بدل</span>
+      </p>
+      <p class="label" data-v="o@no1-0.3/0.3">
+        <span class="en" data-words="26.38 26.52">you get</span>
+        <span class="ar" data-words="29.7 30.05">صار عندك</span>
+      </p>
+
+      <div class="mega swap ltr" data-v="u@no1-0.25/0.65:io" data-sfx="thud@i127 thud@i0a thud@i0b thud@i1 swish@app-0.25 ding@app+0.2">
+        <div class="mega-row nums" data-v="x@app-0.25/0.1">
+          <span class="mg" data-v="p@i127/0.4:back">127</span><span class="mg" data-v="p@i0a/0.4:back">.0</span><span class="mg" data-v="p@i0b/0.4:back">.0</span><span class="mg" data-v="p@i1/0.4:back">.1</span><span class="mg port" data-v="p@i3000/0.4:back">:3000</span>
+          <span class="strike" data-v="s@youget/0.35:io"></span>
+        </div>
+        <span class="port-label" data-v="p@iport/0.35:back o@app-0.25/0.1">port</span>
+        <div class="mega-row scr" data-v="y@app-0.25/0.08 z@app+0.15/0.25">
+          <span data-scramble="app-0.25/0.45" data-from="127.0.0.1:3000" data-text="app.local"></span>
+        </div>
+        <div class="mega-row final" data-v="z@app+0.15/0.3 w@local/0.5:back">app<span class="tld">.local</span></div>
+        <span class="ring big" data-v="r@app+0.2/1.0:out"></span>
+        <span class="burst" data-v="b@app+0.2/0.9:out">
+          <i style="--a:10deg"></i><i style="--a:46deg"></i><i style="--a:82deg"></i><i style="--a:118deg"></i><i style="--a:154deg"></i>
+          <i style="--a:190deg"></i><i style="--a:226deg"></i><i style="--a:262deg"></i><i style="--a:298deg"></i><i style="--a:334deg"></i>
+        </span>
+      </div>
+
+      <div class="url-pill ltr" data-v="p@local+0.05/0.45:back o@no1-0.3/0.3">
+        <svg viewBox="0 0 24 24"><use href="#i-globe"/></svg>
+        <span>http://<b>app.local</b></span>
+        <em><i></i>running</em>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================== 5. no registration -->
+  <section class="scene s-no" data-in="no1-0.3" data-out="more-0.1" data-shake="no1 no2" data-sfx="whoosh@no1-0.35">
+    <div class="cam">
+      <div class="cards">
+        <div class="ncard" data-v="p@no1-0.25/0.5:out dm@registration+0.3/0.4">
+          <span class="nolabel" data-v="q@no1/0.35:back"><span class="en">No</span><span class="ar">بدون</span></span>
+          <span class="nicon"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></span>
+          <h3>
+            <span class="en" data-words="28.2 28.56">Domain registration</span>
+            <span class="ar" data-words="31.95 32.45">تسجيل دومين</span>
+          </h3>
+          <p class="meta"><span class="en">Registrar · $12/year · renewals</span><span class="ar">شركة تسجيل · 12$ بالسنة · تجديد</span></p>
+          <span class="cross" data-v="s@registration+0.3/0.35:io"></span>
+          <span class="stamp" data-v="st@registration+0.45/0.35:back" data-sfx="stamp@registration+0.45"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span class="en">Not needed</span><span class="ar">مش لازم</span></span>
+        </div>
+        <div class="ncard" data-v="p@no2-0.25/0.5:out dm@setup+0.2/0.4">
+          <span class="nolabel" data-v="q@no2/0.35:back"><span class="en">No</span><span class="ar">وبدون</span></span>
+          <span class="nicon"><svg viewBox="0 0 24 24"><use href="#i-dns"/></svg></span>
+          <h3>
+            <span class="en" data-words="29.74 30.3 30.7">complicated DNS setup</span>
+            <span class="ar" data-words="33.5 33.82 34.3">إعداد DNS معقّد</span>
+          </h3>
+          <p class="meta ltr">A · AAAA · CNAME · TTL · propagation…</p>
+          <span class="cross" data-v="s@setup+0.2/0.35:io"></span>
+          <span class="stamp" data-v="st@setup+0.35/0.35:back" data-sfx="stamp@setup+0.35"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg><span class="en">Not needed</span><span class="ar">مش لازم</span></span>
+        </div>
+      </div>
+      <span class="data-sfx-holder" data-sfx="thud@no1 thud@no2"></span>
+    </div>
+  </section>
+
+  <!-- ============================================ 6. terminal interface -->
+  <section class="scene s-term" data-in="more-0.15" data-out="stays-0.3" data-sfx="whoosh@more-0.3">
+    <div class="cam">
+      <div class="intro" data-v="o@terminal+0.25/0.45:io">
+        <p class="big">
+          <span class="en" data-words="31.84 32.06 32.16 32.3 32.46 33.08 33.28 33.36">And when you want <b class="g">more control</b><br>as a developer,</span>
+          <span class="ar" data-words="35.3 35.6 35.92 36.45">ولما بدك <b class="g">تحكم أكبر</b> كمطوّر،</span>
+        </p>
+        <p class="sub">
+          <span class="en" data-words="34.15 34.38 34.8 35.08 35.24 35.42">Locly also gives you a <b class="g">terminal interface.</b></span>
+          <span class="ar" data-words="37.18 37.8 38.2">عندك كمان <b class="g">واجهة الـTerminal</b></span>
+        </p>
+        <span class="prompt-tile ltr" data-v="p@developer/0.5:back" data-sfx="pop@developer">&gt;<i class="blink"></i></span>
+      </div>
+
+      <div class="verbs" data-v="o@list-0.42/0.3">
+        <p class="v1">
+          <span class="en" data-words="cAdd cEdit cEnable 39.08 cRemove 39.5"><b class="c-add">Add,</b> <b class="c-edit">edit,</b> <b class="c-on">enable,</b> or <b class="c-rm">remove</b> services</span>
+          <span class="ar" data-words="cAdd cEdit cEnable 41.55 cRemove 42.15"><b class="c-add">أضف،</b> <b class="c-edit">عدّل،</b> <b class="c-on">فعّل،</b> أو <b class="c-rm">احذف</b> خدماتك</span>
+        </p>
+        <p class="v2">
+          <span class="en" data-words="39.98 simple 40.62">with simple commands</span>
+          <span class="ar" data-words="simple 43.25">بأوامر بسيطة</span>
+        </p>
+      </div>
+      <p class="jsonline">
+        <span class="en" data-words="41.42 41.56 41.84 json 42.44 automation 43.16 ai">and even use <b class="g">JSON</b> for <b class="c-auto">automation</b> and <b class="c-ai">AI tools</b></span>
+        <span class="ar" data-words="44.05 44.4 json automation ai">وحتى استخدم <b class="g">JSON</b> <b class="c-auto">للأتمتة</b> <b class="c-ai">وأدوات الذكاء الاصطناعي</b></span>
+      </p>
+
+      <div class="term cli ltr" data-v="p@terminal+0.25/0.6:io m@json-0.35/0.6:io" data-sfx="whoosh@terminal+0.2">
+        <div class="tbar"><i></i><i></i><i></i><span>localdns</span></div>
+        <div class="tbody">
+          <span class="hilite" data-v="p@cAdd-0.1/0.2 o@list-0.2/0.3" data-k="hy: cAdd=0, cEdit-0.12=0, cEdit=1, cEnable-0.12=1, cEnable=2, cRemove-0.12=2, cRemove=3"></span>
+          <div class="rows" data-v="o@list-0.15/0.4:io">
+            <div class="row">
+              <div class="cmd"><span class="pr">$</span> <span class="keys" data-type="cAdd-0.08/0.12" data-text="localdns "></span><span class="v c-add chain" data-type="cAdd+0.04/0.05" data-text="add"></span><span class="keys chain" data-type="cAdd+0.09/0.22" data-text=" api.local 127.0.0.1:8080"></span></div>
+              <div class="ln ok" data-v="q@cAdd+0.36/0.2">✓ Added successfully <span class="dim">· api.local → 127.0.0.1:8080</span></div>
+            </div>
+            <div class="row" data-v="r@cEdit-0.12/0.08">
+              <div class="cmd"><span class="pr">$</span> <span class="keys" data-type="cEdit-0.08/0.12" data-text="localdns "></span><span class="v c-edit chain" data-type="cEdit+0.04/0.06" data-text="edit"></span><span class="keys chain" data-type="cEdit+0.1/0.22" data-text=" api.local 127.0.0.1:8081"></span></div>
+              <div class="ln ok" data-v="q@cEdit+0.36/0.2">✓ Updated successfully <span class="dim">· api.local → 127.0.0.1:8081</span></div>
+            </div>
+            <div class="row" data-v="r@cEnable-0.12/0.08">
+              <div class="cmd"><span class="pr">$</span> <span class="keys" data-type="cEnable-0.08/0.12" data-text="localdns "></span><span class="v c-on chain" data-type="cEnable+0.04/0.08" data-text="resume"></span><span class="keys chain" data-type="cEnable+0.12/0.16" data-text=" docs.test"></span></div>
+              <div class="ln ok" data-v="q@cEnable+0.36/0.2">✓ Resumed docs.test <span class="dim">· switched back on</span></div>
+            </div>
+            <div class="row" data-v="r@cRemove-0.12/0.08">
+              <div class="cmd"><span class="pr">$</span> <span class="keys" data-type="cRemove-0.08/0.12" data-text="localdns "></span><span class="v c-rm chain" data-type="cRemove+0.04/0.08" data-text="remove"></span><span class="keys chain" data-type="cRemove+0.12/0.2" data-text=" old.local --yes"></span></div>
+              <div class="ln ok" data-v="q@cRemove+0.36/0.2">✓ Removed successfully <span class="dim">· old.local</span></div>
+            </div>
+          </div>
+          <div class="json-block" data-v="p@list-0.1/0.3">
+            <div class="cmd"><span class="pr">$</span> <span class="keys" data-type="list+0.05/0.45" data-text="localdns list --json"></span></div>
+            <pre class="json"><span data-v="q@json/0.2">{</span>
+<span data-v="q@json+0.04/0.2">  <span class="k">"entries"</span>: [</span>
+<span data-v="q@json+0.08/0.2">    {</span>
+<span data-v="q@json+0.12/0.2">      <span class="k">"hostname"</span>: <span class="s">"app.local"</span>,</span>
+<span data-v="q@json+0.16/0.2">      <span class="k">"address"</span>: <span class="s">"127.0.0.1:3000"</span>,</span>
+<span data-v="q@json+0.2/0.2">      <span class="k">"short_url"</span>: <span class="s">"http://app.local"</span>,</span>
+<span data-v="q@json+0.24/0.2">      <span class="k">"status"</span>: <span class="s">"active"</span></span>
+<span data-v="q@json+0.28/0.2">    },</span>
+<span data-v="q@json+0.32/0.2">    { <span class="k">"hostname"</span>: <span class="s">"api.local"</span>, … }</span>
+<span data-v="q@json+0.36/0.2">  ]</span>
+<span data-v="q@json+0.4/0.2">}</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <svg class="wires" viewBox="0 0 1920 1080" aria-hidden="true">
+        <path class="wire" d="M1270 600 C 1320 600, 1300 420, 1360 420" data-v="d@automation-0.2/0.45:io"/>
+        <path class="flow" d="M1270 600 C 1320 600, 1300 420, 1360 420" data-v="d@automation+0.2/0.3"/>
+        <path class="wire" d="M1270 600 C 1320 600, 1300 740, 1360 740" data-v="d@ai-0.2/0.45:io"/>
+        <path class="flow" d="M1270 600 C 1320 600, 1300 740, 1360 740" data-v="d@ai+0.2/0.3"/>
+      </svg>
+      <div class="node auto" data-v="p@automation-0.05/0.5:back" data-sfx="pop@automation">
+        <span class="nic"><svg viewBox="0 0 24 24"><use href="#i-gear"/></svg></span>
+        <div><b><span class="en">Automation</span><span class="ar">الأتمتة</span></b>
+        <small><span class="en">scripts · CI · Makefiles</span><span class="ar">سكربتات · CI · Makefiles</span></small></div>
+      </div>
+      <div class="node ai" data-v="p@ai-0.05/0.5:back" data-sfx="pop@ai">
+        <span class="nic"><svg viewBox="0 0 24 24"><use href="#i-spark"/></svg></span>
+        <div><b><span class="en">AI tools</span><span class="ar">أدوات الذكاء الاصطناعي</span></b>
+        <small><span class="en">agents read and add names</span><span class="ar">الوكلاء يقرؤون الأسماء ويضيفونها</span></small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== 7. three words -->
+  <section class="scene s-values" data-in="stays-0.25" data-out="final-0.3" data-sfx="whoosh@stays-0.3">
+    <div class="cam">
+      <p class="kicker">
+        <span class="en" data-words="44.66 44.96">Everything stays</span>
+        <span class="ar" data-words="47.76 47.9">كل شيء</span>
+      </p>
+      <div class="values">
+        <div class="val blue" data-v="p@vLocal/0.5:back" data-sfx="pop@vLocal">
+          <span class="vic"><svg viewBox="0 0 24 24"><use href="#i-home"/></svg></span>
+          <b><span class="en">local</span><span class="ar">محلي</span></b>
+        </div>
+        <i class="vdot" data-v="p@vSimple-0.2/0.3"></i>
+        <div class="val violet" data-v="p@vSimple/0.5:back" data-sfx="pop@vSimple">
+          <span class="vic"><svg viewBox="0 0 24 24"><use href="#i-feather"/></svg></span>
+          <b><span class="en">simple</span><span class="ar">بسيط</span></b>
+        </div>
+        <i class="vdot" data-v="p@vOrganized-0.2/0.3"></i>
+        <div class="val green" data-v="p@vOrganized/0.5:back" data-sfx="pop@vOrganized">
+          <span class="vic"><svg viewBox="0 0 24 24"><use href="#i-list"/></svg></span>
+          <b><span class="en">organized</span><span class="ar">ومنظّم</span></b>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================= 8. finale -->
+  <section class="scene s-final" data-in="final-0.25" data-out="end+5" data-shake="final" data-sfx="whoosh@final-0.3">
+    <div class="cam">
+      <div class="ghosts ltr" data-v="d@not/0.9:io">
+        <span style="--x:140px;--y:180px;--ph:0.3">127.0.0.1:3000</span>
+        <span style="--x:1500px;--y:150px;--ph:1.7">192.168.1.60:8123</span>
+        <span style="--x:80px;--y:620px;--ph:2.4">:5173</span>
+        <span style="--x:1620px;--y:560px;--ph:3.9">10.0.0.5:9000</span>
+        <span style="--x:300px;--y:930px;--ph:4.6">localhost:8080</span>
+        <span style="--x:1350px;--y:940px;--ph:5.5">172.17.0.2:5432</span>
+        <span style="--x:860px;--y:90px;--ph:0.9">:3002</span>
+        <span style="--x:820px;--y:990px;--ph:2.9">0.0.0.0:8000</span>
+      </div>
+      <div class="lockup final-lockup ltr">
+        <span class="logo-wrap">
+          <img class="logo" src="../../../docs/assets/img/logo.svg" alt="" data-v="p@final/0.6:back" data-sfx="boom@final chime@final+0.05">
+          <span class="ring big" data-v="r@final/1.0:out"></span>
+          <span class="ring big two" data-v="r@final+0.15/1.2:out"></span>
+        </span>
+        <span class="word" data-v="q@final+0.1/0.55:out">Locly</span>
+      </div>
+      <h2 class="tagline">
+        <span class="en" data-words="48.95 names 50.02 numbers">Remember <b class="g">names,</b> not <b class="num-word" data-v="s@numbers+0.35/0.4:io">numbers.</b></span>
+        <span class="ar" data-words="51.0 names not numbers">تذكّر <b class="g">الأسماء…</b> مش <b class="num-word" data-v="s@numbers+0.35/0.4:io">الأرقام.</b></span>
+      </h2>
+      <div class="cta ltr" data-v="p@numbers+0.6/0.6:out">
+        <span class="install"><span class="pr">$</span> curl -fsSL …/install.sh | sh</span>
+        <span class="repo">github.com/Devehab/Locly-DNS</span>
+      </div>
+      <p class="platforms" data-v="p@numbers+0.85/0.6:out">
+        <span class="en">macOS · Linux · Windows · free &amp; open source</span>
+        <span class="ar">macOS · Linux · Windows · مجاني ومفتوح المصدر</span>
+      </p>
+    </div>
+  </section>
+
+  <div class="vignette" aria-hidden="true"></div>
+</div>
+</body>
+</html>

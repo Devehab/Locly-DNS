@@ -44,7 +44,6 @@
     })();
   </script>
   <script src="assets/site.js" defer></script>
-  <script src="assets/motion.js" defer></script>
 </head>
 <body>
   <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
@@ -145,7 +144,7 @@
             <a class="btn btn-primary" href="#install"><span class="en">Get started</span><span class="ar">ابدأ الآن</span></a>
             <a class="btn btn-ghost" href="https://github.com/Devehab/Locly-DNS"><svg width="18" height="18" aria-hidden="true"><use href="#i-github"/></svg><span class="en">View on GitHub</span><span class="ar">شاهده على GitHub</span></a>
           </div>
-          <a class="watch-link" href="#story"><span class="watch-icon" aria-hidden="true"><svg width="14" height="14"><use href="#i-play"/></svg></span><span class="en">Watch the idea in 30 seconds</span><span class="ar">شاهد الفكرة في 30 ثانية</span></a>
+          <a class="watch-link" href="#story"><span class="watch-icon" aria-hidden="true"><svg width="14" height="14"><use href="#i-play"/></svg></span><span class="en">Watch the 1-minute video</span><span class="ar">شاهد الفيديو (دقيقة واحدة)</span></a>
         </div>
 
         <div class="hero-visual">
@@ -195,184 +194,36 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>         http://h
     </section>
 
     <!-- ============================== STORY ============================= -->
-    <section class="section motion-section" id="story">
+    <section class="section film-section" id="story">
       <div class="container">
         <div class="section-head center">
-          <p class="kicker"><span class="en">The idea in 30 seconds</span><span class="ar">الفكرة في 30 ثانية</span></p>
+          <p class="kicker"><span class="en">The idea in under a minute</span><span class="ar">الفكرة في أقل من دقيقة</span></p>
           <h2><span class="en">Remember names, not numbers</span><span class="ar">احفظ أسماء، لا أرقام</span></h2>
           <p><span class="en">Instead of memorizing IP addresses and ports, pick a name you like and use it right away. No domain to register, no DNS to link, no waiting.</span><span class="ar">بدل أن تحفظ عناوين IP وأرقام المنافذ، اختر اسمًا يعجبك واستخدمه فورًا. بلا حجز دومين، وبلا ربط DNS، وبلا انتظار.</span></p>
         </div>
 
-        <figure class="motion">
-          <p class="sr-only">
-            <span class="en">Animation: scattered numbers like 127.0.0.1:3000 and 192.168.1.60:8123 turn into names you choose, such as app.local and ha.local. Registering a domain, linking DNS records and waiting for propagation are all crossed off as not needed. One command, localdns add app.local 127.0.0.1:3000, makes http://app.local open in the browser, no port needed. Names are then added from the terminal and removed from the web UI, and both stay in sync.</span>
-            <span class="ar">رسوم متحركة: أرقام متناثرة مثل 127.0.0.1:3000 و192.168.1.60:8123 تتحول إلى أسماء تختارها مثل app.local وha.local. حجز الدومين وربط سجلات DNS وانتظار الانتشار كلها تُشطب لأنها غير مطلوبة. أمر واحد، localdns add app.local 127.0.0.1:3000، يجعل http://app.local يفتح في المتصفح بدون رقم منفذ. ثم تُضاف الأسماء من الطرفية وتُحذف من واجهة الويب، ويبقى الاثنان متزامنين.</span>
-          </p>
-
-          <div class="motion-stage" id="motion-stage" aria-hidden="true">
-            <div class="m-glow"></div>
-            <div class="m-grid"></div>
-
-            <!-- Scene 1+2: numbers → names -->
-            <div class="m-scene" data-start="0" data-end="10.5">
-              <div class="m-head" data-v="p@0.15/0.7 o@4.45/0.5">
-                <h3 class="m-title"><span class="en">Still memorizing these?</span><span class="ar">ما زلت تحفظ هذه الأرقام؟</span></h3>
-                <p class="m-sub"><span class="en">IPs, ports and sticky notes everywhere.</span><span class="ar">عناوين IP وأرقام منافذ وملاحظات لاصقة في كل مكان.</span></p>
-              </div>
-              <div class="m-head" data-v="p@5.3/0.7">
-                <h3 class="m-title"><span class="en">Give them <span class="m-grad">names you choose</span></span><span class="ar">سمِّها <span class="m-grad">بأسماء تختارها أنت</span></span></h3>
-                <p class="m-sub"><span class="en">Names you remember the first time.</span><span class="ar">أسماء تتذكرها من أول مرة.</span></p>
-              </div>
-
-              <div class="chip key" style="--x:20%;--y:46%;--r:-7deg;--ph:0.2;--cx:65%;--cy:44%" data-v="p@0.35/0.7:back q@5.0/1.1:io m@6.3/0.5:io"><span class="chip-num">127.0.0.1:3000</span><span class="chip-name">app.local</span></div>
-              <div class="chip" style="--x:52%;--y:40%;--r:3deg;--ph:1.9" data-v="p@0.51/0.7:back o@4.9/0.5"><span class="chip-num">127.0.0.1:8080</span></div>
-              <div class="chip key" style="--x:79%;--y:47%;--r:5deg;--ph:3.1;--cx:65%;--cy:80%" data-v="p@0.67/0.7:back q@5.0/1.1:io m@6.9/0.5:io"><span class="chip-num">192.168.1.60:8123</span><span class="chip-name">ha.local</span></div>
-              <div class="chip" style="--x:15%;--y:72%;--r:4deg;--ph:4.4" data-v="p@0.83/0.7:back o@4.96/0.5"><span class="chip-num">10.0.0.5:9000</span></div>
-              <div class="chip key" style="--x:46%;--y:62%;--r:-3deg;--ph:2.6;--cx:65%;--cy:62%" data-v="p@0.99/0.7:back q@5.0/1.1:io m@6.6/0.5:io"><span class="chip-num">127.0.0.1:3002</span><span class="chip-name">api.local</span></div>
-              <div class="chip" style="--x:82%;--y:69%;--r:-5deg;--ph:0.9" data-v="p@1.15/0.7:back o@5.02/0.5"><span class="chip-num">127.0.0.1:5173</span></div>
-              <div class="chip" style="--x:31%;--y:86%;--r:6deg;--ph:5.2" data-v="p@1.31/0.7:back o@5.08/0.5"><span class="chip-num">172.17.0.2:5432</span></div>
-              <div class="chip" style="--x:65%;--y:87%;--r:-4deg;--ph:3.7" data-v="p@1.47/0.7:back o@5.14/0.5"><span class="chip-num">192.168.1.20:32400</span></div>
-
-              <span class="m-was" style="--cx:33%;--cy:44%" data-v="p@6.45/0.5"><s>127.0.0.1:3000</s></span>
-              <span class="m-was" style="--cx:33%;--cy:62%" data-v="p@6.75/0.5"><s>127.0.0.1:3002</s></span>
-              <span class="m-was" style="--cx:33%;--cy:80%" data-v="p@7.05/0.5"><s>192.168.1.60:8123</s></span>
-              <svg class="m-arrow" style="--cx:49%;--cy:44%" data-v="p@6.35/0.45" viewBox="0 0 24 24"><use href="#i-arrow"/></svg>
-              <svg class="m-arrow" style="--cx:49%;--cy:62%" data-v="p@6.65/0.45" viewBox="0 0 24 24"><use href="#i-arrow"/></svg>
-              <svg class="m-arrow" style="--cx:49%;--cy:80%" data-v="p@6.95/0.45" viewBox="0 0 24 24"><use href="#i-arrow"/></svg>
-            </div>
-
-            <!-- Scene 3: no registering, no linking, no waiting -->
-            <div class="m-scene" data-start="10.5" data-end="15.6">
-              <div class="m-head" data-v="p@0.15/0.7">
-                <h3 class="m-title"><span class="en">No registering. No linking. <span class="m-grad">No waiting.</span></span><span class="ar">بلا حجز. بلا ربط. <span class="m-grad">بلا انتظار.</span></span></h3>
-              </div>
-              <div class="m-cards">
-                <div class="m-card" data-v="p@0.5/0.6:back s@1.35/0.45:io k@1.7/0.5:back">
-                  <span class="m-card-icon"><svg viewBox="0 0 24 24"><use href="#i-globe"/></svg></span>
-                  <div class="m-card-text">
-                    <strong><span class="en">Register a domain</span><span class="ar">حجز دومين</span></strong>
-                    <small><span class="en" dir="ltr">$12/yr + renewals</span><span class="ar">12 دولارًا سنويًا + التجديد</span></small>
-                  </div>
-                  <span class="m-stamp"><span class="en">Not needed</span><span class="ar">لا حاجة</span></span>
-                </div>
-                <div class="m-card" data-v="p@0.85/0.6:back s@1.7/0.45:io k@2.05/0.5:back">
-                  <span class="m-card-icon"><svg viewBox="0 0 24 24"><use href="#i-link"/></svg></span>
-                  <div class="m-card-text">
-                    <strong><span class="en">Link DNS records</span><span class="ar">ربط سجلات DNS</span></strong>
-                    <small dir="ltr">A · CNAME · TTL</small>
-                  </div>
-                  <span class="m-stamp"><span class="en">Not needed</span><span class="ar">لا حاجة</span></span>
-                </div>
-                <div class="m-card" data-v="p@1.2/0.6:back s@2.05/0.45:io k@2.4/0.5:back">
-                  <span class="m-card-icon"><svg viewBox="0 0 24 24"><use href="#i-hourglass"/></svg></span>
-                  <div class="m-card-text">
-                    <strong><span class="en">Wait for propagation</span><span class="ar">انتظار الانتشار</span></strong>
-                    <small><span class="en">minutes… or hours</span><span class="ar">دقائق… أو ساعات</span></small>
-                  </div>
-                  <span class="m-stamp"><span class="en">Not needed</span><span class="ar">لا حاجة</span></span>
-                </div>
-              </div>
-              <p class="m-foot" data-v="p@3.0/0.6"><span class="en">Locly maps the name on your own machine, instantly.</span><span class="ar">يربط Locly الاسم على جهازك أنت، فورًا.</span></p>
-            </div>
-
-            <!-- Scene 4: one command -->
-            <div class="m-scene" data-start="15.6" data-end="22.2">
-              <div class="m-head" data-v="p@0.15/0.7">
-                <h3 class="m-title"><span class="en">One command. <span class="m-grad">Done.</span></span><span class="ar">أمر واحد… <span class="m-grad">وانتهى.</span></span></h3>
-                <p class="m-sub"><span class="en">Type the name and the address, then open the link.</span><span class="ar">اكتب الاسم والعنوان، ثم افتح الرابط.</span></p>
-              </div>
-              <div class="m-duo">
-                <div class="m-term" dir="ltr" data-v="p@0.5/0.6">
-                  <div class="m-bar"><i></i><i></i><i></i></div>
-                  <div class="m-term-body">
-                    <div class="m-cmd"><span class="m-prompt">$</span><span data-type="1.0/1.5" data-text="localdns add app.local 127.0.0.1:3000"></span></div>
-                    <div class="m-line m-ok" data-v="p@2.65/0.35">✓ Added successfully</div>
-                    <div class="m-line" data-v="p@2.85/0.35"><b>app.local</b> → 127.0.0.1:3000</div>
-                    <div class="m-line" data-v="p@3.05/0.35">URL: <u>http://app.local</u></div>
-                  </div>
-                </div>
-                <div class="m-browser" dir="ltr" data-v="p@3.3/0.7">
-                  <div class="m-bar m-bar-light"><i></i><i></i><i></i><span class="m-url"><span class="m-url-scheme">http://</span><span data-type="3.85/0.6" data-text="app.local"></span></span></div>
-                  <div class="m-loadbar" data-v="l@4.7/0.5:io o@5.25/0.3"></div>
-                  <div class="m-page" data-v="p@5.05/0.5">
-                    <div class="m-app-nav"><b>My App</b><span class="m-live">● running on app.local</span></div>
-                    <div class="m-app-hero"><strong>Hello from app.local</strong><span></span><span class="short"></span></div>
-                    <div class="m-app-cards"><i></i><i></i><i></i></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Scene 5: manage -->
-            <div class="m-scene m-scene-manage" data-start="22.2" data-end="30">
-              <div class="m-head" data-v="p@0.15/0.7">
-                <h3 class="m-title"><span class="en">Add, list, remove. <span class="m-grad">Or just click.</span></span><span class="ar">أضف، اعرض، احذف… <span class="m-grad">أو انقر فقط.</span></span></h3>
-                <p class="m-sub"><span class="en">The terminal and the web UI share one core, so every change shows up in both.</span><span class="ar">الطرفية وواجهة الويب تعملان على القلب نفسه، فيظهر كل تغيير في الاثنتين.</span></p>
-              </div>
-              <div class="m-duo">
-                <div class="m-panel" data-v="p@0.4/0.6">
-                  <span class="m-label"><span class="en">In the terminal</span><span class="ar">من الطرفية</span></span>
-                  <div class="m-term" dir="ltr">
-                    <div class="m-bar"><i></i><i></i><i></i></div>
-                    <div class="m-term-body">
-                      <div class="m-cmd"><span class="m-prompt">$</span><span data-type="1.2/1.3" data-text="localdns add docs.test 127.0.0.1:4000"></span></div>
-                      <div class="m-line m-ok" data-v="p@2.6/0.3">✓ Added successfully</div>
-                      <div class="m-cmd m-line" data-v="p@5.6/0.2"><span class="m-prompt">$</span><span data-type="5.7/0.6" data-text="localdns list"></span></div>
-                      <div class="m-line m-table" data-v="p@6.45/0.3"><span>app.local</span><span>127.0.0.1:3000</span><span class="m-ok">✓</span></div>
-                      <div class="m-line m-table" data-v="p@6.55/0.3"><span>ha.local</span><span>192.168.1.60:8123</span><span class="m-ok">✓</span></div>
-                      <div class="m-line m-table" data-v="p@6.65/0.3"><span>docs.test</span><span>127.0.0.1:4000</span><span class="m-ok">✓</span></div>
-                    </div>
-                  </div>
-                </div>
-                <div class="m-panel" data-v="p@0.6/0.6">
-                  <span class="m-label"><span class="en">In the web UI</span><span class="ar">من واجهة الويب</span></span>
-                  <div class="m-ui" dir="ltr">
-                    <div class="m-ui-head"><span class="m-ui-logo"></span><b>LocalDNS</b><span class="m-ui-add">+ Add Host</span></div>
-                    <div class="m-rows" data-v="xs@5.2/0.45:io">
-                      <div class="m-row" data-v="p@0.8/0.4"><b>app.local</b><span>127.0.0.1:3000</span><i class="m-dot"></i><em>Delete</em></div>
-                      <div class="m-row m-row-target" data-v="p@0.92/0.4 x@5.15/0.45:io"><b>api.local</b><span>127.0.0.1:3002</span><i class="m-dot"></i><em>Delete</em></div>
-                      <div class="m-row" data-v="p@1.04/0.4"><b>ha.local</b><span>192.168.1.60:8123</span><i class="m-dot"></i><em>Delete</em></div>
-                      <div class="m-row m-row-new" data-v="p@2.8/0.45:io h@3.3/1.6"><b>docs.test</b><span>127.0.0.1:4000</span><i class="m-dot"></i><em>Delete</em></div>
-                    </div>
-                    <div class="m-confirm" data-v="p@4.15/0.25:back o@5.0/0.2">
-                      <span>Delete api.local?</span>
-                      <span class="m-confirm-btns"><i>Cancel</i><i class="danger">Delete</i></span>
-                    </div>
-                    <span class="m-click" style="--cx:86.5%;--cy:41%" data-v="c@4.0/0.45"></span>
-                    <span class="m-click" style="--cx:83%;--cy:70%" data-v="c@4.9/0.45"></span>
-                    <svg class="m-cursor" viewBox="0 0 24 24" data-v="p@3.05/0.3 q@3.2/0.75:io r@4.35/0.5:io o@5.15/0.35"><use href="#i-cursor"/></svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Scene 6: outro -->
-            <div class="m-scene m-outro" data-start="30" data-end="34.5">
-              <img class="m-logo" src="assets/img/logo.svg" alt="" data-v="p@0.15/0.6:back">
-              <div class="m-word" data-v="p@0.35/0.6">Locly</div>
-              <h3 class="m-title" data-v="p@0.7/0.7"><span class="en">Remember names, <span class="m-grad">not numbers.</span></span><span class="ar">احفظ أسماء، <span class="m-grad">لا أرقام.</span></span></h3>
-              <div class="m-install" dir="ltr" data-v="p@1.3/0.6"><span class="m-prompt">$</span>curl -fsSL …/install.sh | sh</div>
-              <p class="m-sub" data-v="p@1.6/0.6"><span class="en">One-line install · macOS · Linux · Windows</span><span class="ar">تثبيت بسطر واحد · macOS · Linux · Windows</span></p>
-              <p class="m-link" dir="ltr" data-v="p@2.0/0.6">github.com/Devehab/Locly-DNS</p>
-            </div>
-          </div>
-
-          <div class="motion-controls">
-            <button type="button" class="motion-play" id="motion-play" aria-pressed="false">
-              <svg class="i-play" width="16" height="16" aria-hidden="true"><use href="#i-play"/></svg>
-              <svg class="i-pause" width="16" height="16" aria-hidden="true"><use href="#i-pause"/></svg>
-              <span class="when-paused"><span class="en">Play</span><span class="ar">تشغيل</span></span>
-              <span class="when-playing"><span class="en">Pause</span><span class="ar">إيقاف</span></span>
+        <figure class="film">
+          <div class="film-frame">
+            <video class="film-video en" controls playsinline preload="none" poster="assets/video/locly-en.jpg" width="1920" height="1080" aria-describedby="film-transcript">
+              <source src="assets/video/locly-en.mp4" type="video/mp4">
+              <track kind="captions" src="assets/video/locly-en.vtt" srclang="en" label="English">
+            </video>
+            <video class="film-video ar" controls playsinline preload="none" poster="assets/video/locly-ar.jpg" width="1920" height="1080" aria-describedby="film-transcript">
+              <source src="assets/video/locly-ar.mp4" type="video/mp4">
+              <track kind="captions" src="assets/video/locly-ar.vtt" srclang="ar" label="العربية">
+            </video>
+            <button type="button" class="film-play" hidden>
+              <span class="film-play-icon" aria-hidden="true"><svg width="30" height="30"><use href="#i-play"/></svg></span>
+              <span class="film-play-label"><span class="en">Watch with sound · 0:53</span><span class="ar">شاهد مع الصوت · 0:56</span></span>
             </button>
-            <ol class="motion-chapters">
-              <li><button type="button" data-chapter="0"><span class="bar"><i></i></span><span class="label"><span class="en">The problem</span><span class="ar">المشكلة</span></span></button></li>
-              <li><button type="button" data-chapter="1"><span class="bar"><i></i></span><span class="label"><span class="en">The idea</span><span class="ar">الفكرة</span></span></button></li>
-              <li><button type="button" data-chapter="2"><span class="bar"><i></i></span><span class="label"><span class="en">No strings</span><span class="ar">بلا تعقيد</span></span></button></li>
-              <li><button type="button" data-chapter="3"><span class="bar"><i></i></span><span class="label"><span class="en">One command</span><span class="ar">أمر واحد</span></span></button></li>
-              <li><button type="button" data-chapter="4"><span class="bar"><i></i></span><span class="label"><span class="en">Easy to manage</span><span class="ar">إدارة سهلة</span></span></button></li>
-              <li><button type="button" data-chapter="5"><span class="bar"><i></i></span><span class="label">Locly</span></button></li>
-            </ol>
           </div>
+          <figcaption>
+            <details class="film-transcript" id="film-transcript">
+              <summary><span class="en">Read the narration</span><span class="ar">اقرأ نص الفيديو</span></summary>
+              <p class="en">Every time you work on a local app, are you still remembering numbers like… 127.0.0.1… port 3000? Why make local development harder than it needs to be? With Locly, it starts with just one line. Install it with a single command… and you're ready. Then open the user interface, add your local services, and give each one a name you can actually remember. Instead of 127.0.0.1… you get app.local. No domain registration. No complicated DNS setup. And when you want more control as a developer, Locly also gives you a terminal interface. Add, edit, enable, or remove services with simple commands… and even use JSON for automation and AI tools. Everything stays local, simple, and organized. Locly. Remember names, not numbers.</p>
+              <p class="ar">تخيّل إنك كل مرة تشتغل على تطبيق محلي، لازم تتذكّر أرقام مثل… <bdi>127.0.0.1</bdi>… بورت 3000. ليش كل هالتعقيد؟ مع Locly، كل شيء يبدأ بسطر واحد. تثبّته بأمر واحد… وتكون جاهز. بعدها، افتح واجهة المستخدم، وأضف خدماتك المحلية، وخصّص لكل خدمة اسم سهل تتذكّره. بدل <bdi>127.0.0.1</bdi>… بورت 3000، صار عندك <bdi>app.local</bdi>. بدون تسجيل دومين، وبدون إعداد DNS معقّد. ولما بدك تحكم أكبر كمطوّر، عندك كمان واجهة الـTerminal. أضف، عدّل، فعّل، أو احذف خدماتك بأوامر بسيطة… وحتى استخدم JSON للأتمتة وأدوات الذكاء الاصطناعي. كل شيء محلي، بسيط، ومنظّم. Locly. تذكّر الأسماء… مش الأرقام.</p>
+            </details>
+          </figcaption>
         </figure>
 
         <div class="ease-head">

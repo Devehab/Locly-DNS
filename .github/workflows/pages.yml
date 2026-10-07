@@ -39,7 +39,9 @@ jobs:
       - name: Build the site
         run: |
           test -f docs/index.html
-          for f in assets/site.css assets/site.js assets/motion.js assets/img/logo.svg assets/img/og.png; do
+          for f in assets/site.css assets/site.js assets/img/logo.svg assets/img/og.png \
+            assets/video/locly-en.mp4 assets/video/locly-ar.mp4 assets/video/locly-en.jpg assets/video/locly-ar.jpg \
+            assets/video/locly-en.vtt assets/video/locly-ar.vtt; do
             test -f "docs/$f" || { echo "missing docs/$f"; exit 1; }
           done
           mkdir -p _site
