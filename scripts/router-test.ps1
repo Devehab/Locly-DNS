@@ -45,10 +45,24 @@ Set-Content -Path (Join-Path $Sandbox 'hosts') -Value '127.0.0.1 localhost'
 Set-Content -Path (Join-Path $Sandbox 'www\index.html') -Value $marker -NoNewline
 $paths = @("--hosts-file=$(Join-Path $Sandbox 'hosts')", "--config-dir=$(Join-Path $Sandbox 'cfg')")
 
-$busy = Get-NetTCPConnection -LocalPort 80 -State Listen -ErrorAction SilentlyContinue
-if ($busy) {
-    $busy | Format-Table -AutoSize | Out-String | Write-Host
-    throw 'something already listens on port 80'
+# True when something accepts connections on 127.0.0.1:80, where the router
+# listens. (A listener on other addresses, e.g. http.sys on [::]:80, is fine.)
+function Test-Port80 {
+    $client = [Net.Sockets.TcpClient]::new()
+    try { $client.Connect('127.0.0.1', 80); return $true } catch { return $false } finally { $client.Dispose() }
+}
+
+Write-Host 'Listeners on port 80 before the test:'
+Get-NetTCPConnection -LocalPort 80 -State Listen -ErrorAction SilentlyContinue | Format-Table -AutoSize | Out-String | Write-Host
+if (Test-Port80) {
+    # Runner images can ship IIS on port 80; free it for this test.
+    Write-Host '127.0.0.1:80 is taken; stopping IIS for this test'
+    Stop-Service -Name W3SVC, WAS -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+    if (Test-Port80) {
+        netsh http show servicestate | Out-String | Write-Host
+        throw '127.0.0.1:80 is still in use'
+    }
 }
 
 $app = Start-Process -FilePath python -ArgumentList '-m', 'http.server', "$appPort", '--bind', '127.0.0.1', '--directory', (Join-Path $Sandbox 'www') -PassThru -WindowStyle Hidden
