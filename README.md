@@ -2,6 +2,8 @@
 
 **A secure, local-only hostname manager for developers and AI agents.**
 
+🌐 **Website (English / العربية):** <https://devehab.github.io/Locly-DNS/>
+
 Give the services running on your machine (or on your local network) friendly names:
 
 ```text
@@ -480,6 +482,7 @@ test/integration/      CLI + UI + core together; security audits
 test/cli/              black-box tests of the built binary
 tools/release/         cross-compile and package release archives
 scripts/smoke-test.*   post-install end-to-end check (used by CI)
+docs/                  bilingual (English/Arabic) landing page for GitHub Pages
 ```
 
 **Tests never touch the real hosts file.** They use `hoststest.TemporaryHostsFile`
@@ -493,6 +496,12 @@ scripts/smoke-test.*   post-install end-to-end check (used by CI)
 - The one-command install, for real: `curl … | sh` (and `irm … | iex` on Windows) against the
   freshly built archives, then `info` → `add` → `list --json` → `remove --yes` →
   `uninstall --yes`, verifying every step
+
+**Website:** `docs/` is a static, dependency-free landing page in English and Arabic
+(language switch with full right-to-left layout, light/dark themes, self-hosted fonts, no
+trackers). To publish it, open **Settings → Pages**, choose **Deploy from a branch**, and
+select `main` and the `/docs` folder. Preview it locally with
+`go run ./tools/serve -dir docs -port 8080` and open `http://127.0.0.1:8080`.
 
 **Releasing:** push a tag like `v0.1.0`. The release workflow tests, builds the archives and
 `checksums.txt`, publishes the GitHub release (with `install.sh` and `install.ps1` attached),

@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Locly — Friendly local hostnames for developers and AI agents</title>
+  <meta name="description" content="Locly (localdns) maps app.local to 127.0.0.1:3000 with one command by managing its own section of your hosts file. Not a DNS server. No daemon. A CLI for developers and AI agents, plus a simple web UI.">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0e17" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="assets/img/logo.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://devehab.github.io/Locly-DNS/">
+  <link rel="alternate" hreflang="en" href="https://devehab.github.io/Locly-DNS/?lang=en">
+  <link rel="alternate" hreflang="ar" href="https://devehab.github.io/Locly-DNS/?lang=ar">
+  <link rel="alternate" hreflang="x-default" href="https://devehab.github.io/Locly-DNS/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Locly">
+  <meta property="og:title" content="Locly — Friendly names for your local services">
+  <meta property="og:description" content="app.local → 127.0.0.1:3000 with one command. Not a DNS server. Built for developers and AI agents.">
+  <meta property="og:url" content="https://devehab.github.io/Locly-DNS/">
+  <meta property="og:image" content="https://devehab.github.io/Locly-DNS/assets/img/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ar_AR">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preload" href="assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/site.css">
+  <script>
+    // Choose the language before the first paint: ?lang=, then the saved
+    // choice, then the browser language.
+    (function () {
+      var lang = null;
+      try {
+        lang = new URLSearchParams(location.search).get("lang") || localStorage.getItem("locly-lang");
+      } catch (e) {}
+      if (lang !== "ar" && lang !== "en") {
+        lang = (navigator.language || "").toLowerCase().indexOf("ar") === 0 ? "ar" : "en";
+      }
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    })();
+  </script>
+  <script src="assets/site.js" defer></script>
+</head>
+<body>
+  <svg width="0" height="0" class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></symbol>
+    <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 9l3 3-3 3M12.5 15H17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3c-2.8 2.6-4 5.6-4 9s1.2 6.4 4 9c2.8-2.6 4-5.6 4-9s-1.2-6.4-4-9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.6-3.4 8.3-8 9-4.6-.7-8-4.4-8-9V6l8-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v4M9 12.5v1M15 12.5v1M2 12v3M22 12v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12h6M9 16h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main"><span class="en">Skip to content</span><span class="ar">انتقل إلى المحتوى</span></a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="Locly">
+        <img src="assets/img/logo.svg" alt="" width="30" height="30">
+        <span class="brand-name">Locly</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#how"><span class="en">How it works</span><span class="ar">كيف يعمل</span></a>
+        <a href="#examples"><span class="en">Examples</span><span class="ar">أمثلة</span></a>
+        <a href="#install"><span class="en">Install</span><span class="ar">التثبيت</span></a>
+        <a href="#commands"><span class="en">Commands</span><span class="ar">الأوامر</span></a>
+        <a href="#agents"><span class="en">AI agents</span><span class="ar">وكلاء AI</span></a>
+        <a href="#security"><span class="en">Security</span><span class="ar">الأمان</span></a>
+      </nav>
+      <div class="header-actions">
+        <button type="button" class="lang-toggle" id="lang-toggle">
+          <span class="en" lang="ar">العربية</span><span class="ar" lang="en">English</span>
+        </button>
+        <a class="icon-link" href="https://github.com/Devehab/Locly-DNS" aria-label="GitHub">
+          <svg width="22" height="22" aria-hidden="true"><use href="#i-github"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============================== HERO ============================== -->
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow">
+            <span class="pill-dot" aria-hidden="true"></span>
+            <span class="en">macOS · Linux · Windows · one small binary</span>
+            <span class="ar">macOS · Linux · Windows · ملف تنفيذي واحد صغير</span>
+          </p>
+          <h1>
+            <span class="en">Friendly names for your <span class="grad">local services</span></span>
+            <span class="ar">أسماء سهلة <span class="grad">لخدماتك المحلية</span></span>
+          </h1>
+          <p class="lead">
+            <span class="en">Turn <code dir="ltr">127.0.0.1:3000</code> into <code dir="ltr">app.local:3000</code> with a single command. Locly writes only its own section of your hosts file. No DNS server, no background service, nothing else on your system changes.</span>
+            <span class="ar">حوّل <code dir="ltr">127.0.0.1:3000</code> إلى <code dir="ltr">app.local:3000</code> بأمر واحد. يكتب Locly في قسمه الخاص فقط من ملف hosts، بلا خادم DNS، وبلا خدمة تعمل في الخلفية، ولا يتغيّر أي شيء آخر في نظامك.</span>
+          </p>
+          <p class="sublead">
+            <span class="en">Built for developers <em>and</em> AI agents: a scriptable CLI with JSON output, plus a simple web UI.</span>
+            <span class="ar">مصمَّم للمطورين <em>ولوكلاء الذكاء الاصطناعي</em>: واجهة أوامر قابلة للأتمتة بمخرجات JSON، وواجهة ويب بسيطة.</span>
+          </p>
+
+          <div class="tabs install-tabs" data-tabs>
+            <div class="tablist" role="tablist" aria-label="Operating system">
+              <button type="button" role="tab" id="hero-tab-unix" aria-controls="hero-panel-unix" aria-selected="true" data-os="unix"><span class="en">macOS &amp; Linux</span><span class="ar">macOS و Linux</span></button>
+              <button type="button" role="tab" id="hero-tab-win" aria-controls="hero-panel-win" aria-selected="false" tabindex="-1" data-os="windows">Windows</button>
+            </div>
+            <div role="tabpanel" id="hero-panel-unix" aria-labelledby="hero-tab-unix" data-os="unix">
+              <div class="cmd" dir="ltr">
+                <code><span class="prompt" aria-hidden="true">$</span>curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh</code>
+                <button type="button" class="copy" data-copy="curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button>
+              </div>
+            </div>
+            <div role="tabpanel" id="hero-panel-win" aria-labelledby="hero-tab-win" data-os="windows" hidden>
+              <div class="cmd" dir="ltr">
+                <code><span class="prompt" aria-hidden="true">PS&gt;</span>irm https://github.com/Devehab/Locly-DNS/releases/latest/download/install.ps1 | iex</code>
+                <button type="button" class="copy" data-copy="irm https://github.com/Devehab/Locly-DNS/releases/latest/download/install.ps1 | iex"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button>
+              </div>
+            </div>
+            <p class="fine-print">
+              <svg width="14" height="14" aria-hidden="true"><use href="#i-shield"/></svg>
+              <span class="en">Downloads from GitHub Releases and verifies the SHA-256 checksum before installing.</span>
+              <span class="ar">يُنزَّل من GitHub Releases ويُتحقَّق من بصمة SHA-256 قبل التثبيت.</span>
+            </p>
+          </div>
+
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="#install"><span class="en">Get started</span><span class="ar">ابدأ الآن</span></a>
+            <a class="btn btn-ghost" href="https://github.com/Devehab/Locly-DNS"><svg width="18" height="18" aria-hidden="true"><use href="#i-github"/></svg><span class="en">View on GitHub</span><span class="ar">شاهده على GitHub</span></a>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="terminal" dir="ltr">
+            <div class="terminal-bar" aria-hidden="true"><span></span><span></span><span></span><em>Terminal</em></div>
+<pre class="terminal-body"><code><span class="t-prompt">$</span> localdns add app.local 127.0.0.1:3000
+<span class="t-ok">✓</span> Added successfully
+
+<b>app.local</b> → 127.0.0.1:3000
+
+URL:
+<span class="t-link">http://app.local:3000</span>
+
+<span class="t-prompt">$</span> localdns list
+<b>LocalDNS</b>
+
+<b>HOSTNAME     ADDRESS              STATUS</b>
+<span class="t-dim">────────────────────────────────────────</span>
+app.local    127.0.0.1:3000       <span class="t-ok">✓</span>
+api.local    127.0.0.1:3002       <span class="t-ok">✓</span>
+ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
+
+3 entries</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="container">
+        <div class="mapping">
+          <div class="map-row">
+            <code class="from" dir="ltr">127.0.0.1:3000</code>
+            <svg class="arrow" width="22" height="22" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <code class="to" dir="ltr">app.local:3000</code>
+          </div>
+          <div class="map-row">
+            <code class="from" dir="ltr">127.0.0.1:3002</code>
+            <svg class="arrow" width="22" height="22" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <code class="to" dir="ltr">api.local:3002</code>
+          </div>
+          <div class="map-row">
+            <code class="from" dir="ltr">192.168.1.60:8123</code>
+            <svg class="arrow" width="22" height="22" aria-hidden="true"><use href="#i-arrow"/></svg>
+            <code class="to" dir="ltr">ha.local:8123</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== HOW IT WORKS ========================== -->
+    <section class="section" id="how">
+      <div class="container">
+        <div class="section-head">
+          <p class="kicker"><span class="en">How it works</span><span class="ar">كيف يعمل</span></p>
+          <h2><span class="en">Your hosts file, done right</span><span class="ar">ملف hosts، بالطريقة الصحيحة</span></h2>
+          <p><span class="en">Your operating system already checks the hosts file before asking DNS. Locly simply manages one clearly marked block in that file, and never touches anything else.</span><span class="ar">نظام التشغيل يقرأ ملف hosts قبل أن يسأل خوادم DNS. كل ما يفعله Locly هو إدارة قسم واحد واضح ومحدَّد داخل هذا الملف، ولا يلمس أي شيء آخر.</span></p>
+        </div>
+
+        <ol class="steps">
+          <li class="step">
+            <span class="step-num">1</span>
+            <h3><span class="en">Add a name</span><span class="ar">أضف اسمًا</span></h3>
+            <p><span class="en">Tell Locly which name points to which address. The port is optional.</span><span class="ar">أخبر Locly أي اسم يشير إلى أي عنوان. رقم المنفذ اختياري.</span></p>
+            <div class="cmd small" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add app.local 127.0.0.1:3000</code></div>
+          </li>
+          <li class="step">
+            <span class="step-num">2</span>
+            <h3><span class="en">Locly writes one line</span><span class="ar">يكتب Locly سطرًا واحدًا</span></h3>
+            <p><span class="en">Inside its own <code dir="ltr"># BEGIN LOCALDNS</code> block. The port is kept in Locly's config, because hosts files can't store ports.</span><span class="ar">داخل قسمه الخاص <code dir="ltr"># BEGIN LOCALDNS</code>. ويحفظ رقم المنفذ في إعداداته، لأن ملف hosts لا يدعم المنافذ.</span></p>
+            <div class="cmd small" dir="ltr"><code>127.0.0.1 app.local</code></div>
+          </li>
+          <li class="step">
+            <span class="step-num">3</span>
+            <h3><span class="en">Open it</span><span class="ar">افتحه</span></h3>
+            <p><span class="en">Your browser now reaches the service by name. Every other name, google.com included, keeps using your normal DNS.</span><span class="ar">يصل متصفحك الآن إلى الخدمة باسمها. وكل الأسماء الأخرى، ومنها google.com، تبقى على DNS المعتاد.</span></p>
+            <div class="cmd small" dir="ltr"><code>http://app.local:3000</code></div>
+          </li>
+        </ol>
+
+        <div class="how-grid">
+          <figure class="hosts-figure">
+            <div class="file-head" dir="ltr"><svg width="16" height="16" aria-hidden="true"><use href="#i-file"/></svg>/etc/hosts</div>
+<pre class="hosts" dir="ltr"><code><span class="u">127.0.0.1        localhost</span>
+<span class="u">255.255.255.255  broadcasthost</span>
+<span class="u">::1              localhost</span>
+<span class="u">10.0.0.5         nas.home.arpa</span>
+<span class="m m-first"># BEGIN LOCALDNS</span>
+<span class="m">127.0.0.1 app.local</span>
+<span class="m">127.0.0.1 api.local</span>
+<span class="m m-last"># END LOCALDNS</span></code></pre>
+            <figcaption class="legend">
+              <span><i class="swatch u" aria-hidden="true"></i><span class="en">Your entries: never modified</span><span class="ar">مدخلاتك: لا تُعدَّل أبدًا</span></span>
+              <span><i class="swatch m" aria-hidden="true"></i><span class="en">Managed by Locly</span><span class="ar">يديره Locly</span></span>
+            </figcaption>
+          </figure>
+
+          <div class="flow">
+            <div class="lane">
+              <p class="lane-title"><span class="en">A name Locly manages</span><span class="ar">اسم يديره Locly</span></p>
+              <div class="lane-nodes">
+                <code class="node" dir="ltr">app.local</code>
+                <svg class="arrow" width="20" height="20" aria-hidden="true"><use href="#i-arrow"/></svg>
+                <span class="node node-mid"><span class="en">hosts file · Locly block</span><span class="ar">ملف hosts · قسم Locly</span></span>
+                <svg class="arrow" width="20" height="20" aria-hidden="true"><use href="#i-arrow"/></svg>
+                <code class="node node-ok" dir="ltr">127.0.0.1:3000 ✓</code>
+              </div>
+            </div>
+            <div class="lane lane-muted">
+              <p class="lane-title"><span class="en">Everything else</span><span class="ar">كل ما عدا ذلك</span></p>
+              <div class="lane-nodes">
+                <code class="node" dir="ltr">google.com</code>
+                <svg class="arrow" width="20" height="20" aria-hidden="true"><use href="#i-arrow"/></svg>
+                <span class="node node-mid"><span class="en">not in the block</span><span class="ar">ليس في القسم</span></span>
+                <svg class="arrow" width="20" height="20" aria-hidden="true"><use href="#i-arrow"/></svg>
+                <span class="node"><span class="en">your normal DNS</span><span class="ar">DNS المعتاد</span></span>
+              </div>
+            </div>
+            <p class="flow-note">
+              <svg width="18" height="18" aria-hidden="true"><use href="#i-shield"/></svg>
+              <span class="en">Not in the block? Locly isn't involved at all. It never answers DNS queries and never intercepts traffic.</span>
+              <span class="ar">ليس في القسم؟ لا يتدخل Locly إطلاقًا. فهو لا يجيب على استعلامات DNS ولا يعترض أي حركة مرور.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= WEB UI ============================= -->
+    <section class="section section-soft" id="ui">
+      <div class="container">
+        <div class="section-head">
+          <p class="kicker"><span class="en">Web UI</span><span class="ar">واجهة الويب</span></p>
+          <h2><span class="en">Prefer clicking? There's a web UI</span><span class="ar">تفضّل النقر؟ هناك واجهة ويب</span></h2>
+          <p><span class="en">Run <code dir="ltr">localdns ui</code> and open <code dir="ltr">http://127.0.0.1:7357</code>. Add and delete hosts, and see IPs, ports, URLs and status at a glance. It's built into the binary (no Node.js or Python) and listens on localhost only.</span><span class="ar">شغّل <code dir="ltr">localdns ui</code> وافتح <code dir="ltr">http://127.0.0.1:7357</code>. أضف الأسماء واحذفها، وشاهد العناوين والمنافذ والروابط والحالة بنظرة واحدة. الواجهة مدمجة في البرنامج نفسه (بلا Node.js أو Python) وتعمل على localhost فقط.</span></p>
+        </div>
+
+        <figure class="browser">
+          <div class="browser-bar" aria-hidden="true">
+            <span class="dots"><span></span><span></span><span></span></span>
+            <span class="address" dir="ltr">127.0.0.1:7357</span>
+          </div>
+          <picture class="en">
+            <source srcset="assets/img/ui-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/ui-light.png" width="1040" height="520" loading="lazy" decoding="async"
+                 alt="The LocalDNS web UI listing app.local, api.local, docs.test, ha.local and nas.lan with their IP, port, URL, an Active status and a Delete button, plus an Add Host button.">
+          </picture>
+          <picture class="ar">
+            <source srcset="assets/img/ui-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/ui-light.png" width="1040" height="520" loading="lazy" decoding="async"
+                 alt="واجهة LocalDNS على الويب تعرض الأسماء app.local وapi.local وdocs.test وha.local وnas.lan مع عنوان IP والمنفذ والرابط وحالة نشط وزر حذف، إضافة إلى زر Add Host.">
+          </picture>
+        </figure>
+
+        <ul class="feature-row">
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Add Host with instant validation</span><span class="ar">إضافة اسم مع تحقق فوري</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Delete always asks first</span><span class="ar">الحذف يطلب التأكيد دائمًا</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Live status for every entry</span><span class="ar">حالة مباشرة لكل اسم</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Light and dark mode</span><span class="ar">وضع فاتح وداكن</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============================ EXAMPLES ============================ -->
+    <section class="section" id="examples">
+      <div class="container">
+        <div class="section-head">
+          <p class="kicker"><span class="en">Examples</span><span class="ar">أمثلة</span></p>
+          <h2><span class="en">One format for everything</span><span class="ar">صيغة واحدة لكل شيء</span></h2>
+          <p><span class="en">The format is always <code dir="ltr">localdns add &lt;hostname&gt; &lt;ip[:port]&gt;</code>.</span><span class="ar">الصيغة دائمًا هي <code dir="ltr">localdns add &lt;hostname&gt; &lt;ip[:port]&gt;</code>.</span></p>
+        </div>
+
+        <div class="examples">
+          <article class="example">
+            <h3><span class="en">A local web app</span><span class="ar">تطبيق ويب محلي</span></h3>
+            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add app.local 127.0.0.1:3000</code><button type="button" class="copy" data-copy="localdns add app.local 127.0.0.1:3000"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://app.local:3000</code></p>
+          </article>
+          <article class="example">
+            <h3><span class="en">A backend API</span><span class="ar">واجهة API خلفية</span></h3>
+            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add api.local 127.0.0.1:3002</code><button type="button" class="copy" data-copy="localdns add api.local 127.0.0.1:3002"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://api.local:3002</code></p>
+          </article>
+          <article class="example">
+            <h3><span class="en">A device on your network</span><span class="ar">جهاز على شبكتك</span></h3>
+            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add ha.local 192.168.1.60:8123</code><button type="button" class="copy" data-copy="localdns add ha.local 192.168.1.60:8123"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://ha.local:8123</code><span class="tag">Home Assistant</span></p>
+          </article>
+          <article class="example">
+            <h3><span class="en">No port needed</span><span class="ar">بدون منفذ</span></h3>
+            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add nas.lan 192.168.1.20</code><button type="button" class="copy" data-copy="localdns add nas.lan 192.168.1.20"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://nas.lan</code></p>
+          </article>
+          <article class="example">
+            <h3><span class="en">Change an existing name</span><span class="ar">تعديل اسم موجود</span></h3>
+            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add app.local 127.0.0.1:4000 --force</code><button type="button" class="copy" data-copy="localdns add app.local 127.0.0.1:4000 --force"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg><code dir="ltr">Updated successfully</code></p>
+          </article>
+          <article class="example">
+            <h3><span class="en">IPv6 works too</span><span class="ar">يدعم IPv6 أيضًا</span></h3>
+            <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add v6.test [::1]:8080</code><button type="button" class="copy" data-copy="localdns add v6.test [::1]:8080"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://v6.test:8080</code></p>
+          </article>
+        </div>
+
+        <div class="split">
+          <div>
+            <h3><span class="en">Remove when you're done</span><span class="ar">احذف عندما تنتهي</span></h3>
+            <p><span class="en">People get a confirmation question. Scripts and agents pass <code dir="ltr">--yes</code>.</span><span class="ar">يظهر للمستخدم سؤال تأكيد، بينما تمرّر السكربتات والوكلاء الخيار <code dir="ltr">--yes</code>.</span></p>
+          </div>
+          <div class="terminal" dir="ltr">
+            <div class="terminal-bar" aria-hidden="true"><span></span><span></span><span></span><em>Terminal</em></div>
+<pre class="terminal-body"><code><span class="t-prompt">$</span> localdns remove app.local
+Remove app.local → 127.0.0.1:3000?
+
+[y/N] y
+
+<span class="t-ok">✓</span> Removed successfully
+
+<b>app.local</b> → 127.0.0.1:3000
+
+<span class="t-prompt">$</span> localdns remove api.local --yes
+<span class="t-ok">✓</span> Removed successfully
+
+<b>api.local</b> → 127.0.0.1:3002</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= INSTALL ============================ -->
+    <section class="section section-soft" id="install">
+      <div class="container">
+        <div class="section-head">
+          <p class="kicker"><span class="en">Install</span><span class="ar">التثبيت</span></p>
+          <h2><span class="en">Install in one line</span><span class="ar">التثبيت بسطر واحد</span></h2>
+          <p><span class="en">No runtime, no dependencies, no package manager required.</span><span class="ar">بلا بيئة تشغيل، وبلا اعتماديات، ودون الحاجة إلى مدير حزم.</span></p>
+        </div>
+
+        <div class="install-grid">
+          <div class="install-main">
+            <div class="tabs" data-tabs>
+              <div class="tablist" role="tablist" aria-label="Operating system">
+                <button type="button" role="tab" id="inst-tab-unix" aria-controls="inst-panel-unix" aria-selected="true" data-os="unix"><span class="en">macOS &amp; Linux</span><span class="ar">macOS و Linux</span></button>
+                <button type="button" role="tab" id="inst-tab-win" aria-controls="inst-panel-win" aria-selected="false" tabindex="-1" data-os="windows">Windows</button>
+              </div>
+              <div role="tabpanel" id="inst-panel-unix" aria-labelledby="inst-tab-unix" data-os="unix">
+                <ol class="install-steps">
+                  <li>
+                    <p><span class="en">Run the installer in your terminal:</span><span class="ar">شغّل أمر التثبيت في الطرفية:</span></p>
+                    <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh</code><button type="button" class="copy" data-copy="curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+                  </li>
+                  <li>
+                    <p><span class="en">Check that it works:</span><span class="ar">تأكد أنه يعمل:</span></p>
+                    <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns info</code><button type="button" class="copy" data-copy="localdns info"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+                  </li>
+                  <li>
+                    <p><span class="en">Add your first name:</span><span class="ar">أضف أول اسم:</span></p>
+                    <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add app.local 127.0.0.1:3000</code><button type="button" class="copy" data-copy="localdns add app.local 127.0.0.1:3000"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+                  </li>
+                </ol>
+              </div>
+              <div role="tabpanel" id="inst-panel-win" aria-labelledby="inst-tab-win" data-os="windows" hidden>
+                <ol class="install-steps">
+                  <li>
+                    <p><span class="en">Run the installer in PowerShell (no admin rights needed to install):</span><span class="ar">شغّل أمر التثبيت في PowerShell (لا يحتاج التثبيت صلاحيات المسؤول):</span></p>
+                    <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">PS&gt;</span>irm https://github.com/Devehab/Locly-DNS/releases/latest/download/install.ps1 | iex</code><button type="button" class="copy" data-copy="irm https://github.com/Devehab/Locly-DNS/releases/latest/download/install.ps1 | iex"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+                  </li>
+                  <li>
+                    <p><span class="en">Open a <strong>new</strong> terminal with “Run as administrator” and check that it works:</span><span class="ar">افتح طرفية <strong>جديدة</strong> بخيار «تشغيل كمسؤول» وتأكد أنه يعمل:</span></p>
+                    <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">PS&gt;</span>localdns info</code><button type="button" class="copy" data-copy="localdns info"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+                  </li>
+                  <li>
+                    <p><span class="en">Add your first name:</span><span class="ar">أضف أول اسم:</span></p>
+                    <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">PS&gt;</span>localdns add app.local 127.0.0.1:3000</code><button type="button" class="copy" data-copy="localdns add app.local 127.0.0.1:3000"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+                  </li>
+                </ol>
+              </div>
+            </div>
+
+            <div class="callout">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-shield"/></svg>
+              <p>
+                <span class="en"><strong>Administrator rights:</strong> only changing the hosts file needs them. On macOS and Linux, <code dir="ltr">localdns</code> asks for <code dir="ltr">sudo</code> for that single command and then exits. On Windows, use a terminal opened with “Run as administrator”. Reading (<code dir="ltr">list</code>, <code dir="ltr">status</code>, <code dir="ltr">info</code>, <code dir="ltr">doctor</code>) never needs them.</span>
+                <span class="ar"><strong>صلاحيات المسؤول:</strong> لا يحتاجها إلا تعديل ملف hosts. على macOS وLinux يطلب <code dir="ltr">localdns</code> صلاحية <code dir="ltr">sudo</code> لذلك الأمر وحده ثم ينتهي. وعلى Windows استخدم طرفية مفتوحة بخيار «تشغيل كمسؤول». أوامر القراءة (<code dir="ltr">list</code> و<code dir="ltr">status</code> و<code dir="ltr">info</code> و<code dir="ltr">doctor</code>) لا تحتاجها أبدًا.</span>
+              </p>
+            </div>
+          </div>
+
+          <aside class="install-side">
+            <h3><span class="en">What the installer does</span><span class="ar">ماذا يفعل المثبِّت؟</span></h3>
+            <ul class="checklist">
+              <li><span class="en">Detects your OS and CPU (amd64 or arm64)</span><span class="ar">يتعرّف على نظامك ونوع المعالج (amd64 أو arm64)</span></li>
+              <li><span class="en">Downloads from GitHub Releases over HTTPS</span><span class="ar">ينزّل البرنامج من GitHub Releases عبر HTTPS</span></li>
+              <li><span class="en">Verifies the SHA-256 checksum</span><span class="ar">يتحقق من بصمة SHA-256</span></li>
+              <li><span class="en">Copies it to <code dir="ltr">/usr/local/bin</code> (or <code dir="ltr">~/.local/bin</code>). On Windows: <code dir="ltr">%LOCALAPPDATA%\Programs\LocalDNS</code>, added to your PATH</span><span class="ar">ينسخه إلى <code dir="ltr">/usr/local/bin</code> (أو <code dir="ltr">~/.local/bin</code>). وعلى Windows إلى <code dir="ltr">%LOCALAPPDATA%\Programs\LocalDNS</code> ويضيفه إلى PATH</span></li>
+              <li><span class="en">Changes nothing else: no services, no shell profile edits, no DNS settings</span><span class="ar">لا يغيّر أي شيء آخر: لا خدمات، ولا تعديل لملفات الطرفية، ولا لإعدادات DNS</span></li>
+            </ul>
+
+            <h3><span class="en">Other options</span><span class="ar">خيارات أخرى</span></h3>
+            <p class="side-label"><span class="en">A specific version</span><span class="ar">إصدار محدد</span></p>
+            <div class="cmd small" dir="ltr"><code>curl -fsSL …/install.sh | LOCALDNS_VERSION=v0.1.0 sh</code></div>
+            <p class="side-label"><span class="en">A custom folder</span><span class="ar">مجلد مخصص</span></p>
+            <div class="cmd small" dir="ltr"><code>curl -fsSL …/install.sh | LOCALDNS_INSTALL_DIR=$HOME/bin sh</code></div>
+            <p class="side-label"><span class="en">From source (Go 1.24+)</span><span class="ar">من الشيفرة المصدرية (Go 1.24+)</span></p>
+            <div class="cmd small" dir="ltr"><code>go install github.com/devehab/locly-dns/cmd/localdns@latest</code><button type="button" class="copy" data-copy="go install github.com/devehab/locly-dns/cmd/localdns@latest"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+            <p class="side-label"><span class="en">Uninstall everything</span><span class="ar">إزالة كل شيء</span></p>
+            <div class="cmd small" dir="ltr"><code>localdns uninstall</code><button type="button" class="copy" data-copy="localdns uninstall"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ COMMANDS ============================ -->
+    <section class="section" id="commands">
+      <div class="container">
+        <div class="section-head">
+          <p class="kicker"><span class="en">Command guide</span><span class="ar">دليل الأوامر</span></p>
+          <h2><span class="en">Eight commands. That's the whole tool.</span><span class="ar">ثمانية أوامر. هذه هي الأداة كلها.</span></h2>
+          <p><span class="en">Every command supports <code dir="ltr">--help</code> and <code dir="ltr">--json</code>. Start with <code dir="ltr">localdns info</code>.</span><span class="ar">كل أمر يدعم <code dir="ltr">--help</code> و<code dir="ltr">--json</code>. ابدأ بالأمر <code dir="ltr">localdns info</code>.</span></p>
+        </div>
+
+        <div class="table-wrap">
+          <table class="ref-table">
+            <thead>
+              <tr>
+                <th scope="col"><span class="en">Command</span><span class="ar">الأمر</span></th>
+                <th scope="col"><span class="en">What it does</span><span class="ar">ماذا يفعل</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td dir="ltr"><a href="#cmd-add"><code>localdns add &lt;hostname&gt; &lt;ip[:port]&gt;</code></a></td><td><span class="en">Add a hostname</span><span class="ar">إضافة اسم</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-list"><code>localdns list</code></a></td><td><span class="en">List hostnames with address and status</span><span class="ar">عرض الأسماء مع العنوان والحالة</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-remove"><code>localdns remove &lt;hostname&gt;</code></a></td><td><span class="en">Remove a hostname</span><span class="ar">حذف اسم</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-status"><code>localdns status</code></a></td><td><span class="en">Check files, write access and entries</span><span class="ar">فحص الملفات وصلاحية الكتابة والمدخلات</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-doctor"><code>localdns doctor</code></a></td><td><span class="en">Diagnose problems and suggest fixes</span><span class="ar">تشخيص المشكلات واقتراح الحلول</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-ui"><code>localdns ui</code></a></td><td><span class="en">Open the web interface</span><span class="ar">تشغيل واجهة الويب</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-uninstall"><code>localdns uninstall</code></a></td><td><span class="en">Remove LocalDNS completely</span><span class="ar">إزالة LocalDNS بالكامل</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-info"><code>localdns info</code></a></td><td><span class="en">Show all commands, flags and exit codes</span><span class="ar">عرض كل الأوامر والخيارات ورموز الخروج</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="cmd-cards">
+          <article class="cmd-card" id="cmd-add">
+            <header><h3 dir="ltr">add</h3><code class="usage" dir="ltr">localdns add &lt;hostname&gt; &lt;ip[:port]&gt;</code></header>
+            <p><span class="en">Map a local hostname to an IP on this machine or your network. Adding the same entry twice changes nothing; use <code dir="ltr">--force</code> to change an existing one.</span><span class="ar">يربط اسمًا محليًا بعنوان IP على جهازك أو شبكتك. إضافة المدخل نفسه مرتين لا تغيّر شيئًا، واستخدم <code dir="ltr">--force</code> لتعديل مدخل موجود.</span></p>
+            <dl class="flags">
+              <div><dt dir="ltr">--force</dt><dd><span class="en">Replace an entry that points somewhere else</span><span class="ar">استبدال مدخل يشير إلى عنوان آخر</span></dd></div>
+              <div><dt dir="ltr">--json</dt><dd><span class="en">Print the result as JSON</span><span class="ar">طباعة النتيجة بصيغة JSON</span></dd></div>
+              <div><dt dir="ltr">--no-elevate</dt><dd><span class="en">Never ask for sudo automatically</span><span class="ar">عدم طلب sudo تلقائيًا</span></dd></div>
+            </dl>
+<pre class="code" dir="ltr"><code>localdns add app.local 127.0.0.1:3000
+localdns add ha.local 192.168.1.60
+localdns add app.local 127.0.0.1:4000 --force</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-list">
+            <header><h3 dir="ltr">list</h3><code class="usage" dir="ltr">localdns list</code></header>
+            <p><span class="en">Show every managed name with its address and status: <code dir="ltr">active</code>, <code dir="ltr">missing</code> (the line was deleted by hand) or <code dir="ltr">conflict</code> (another line overrides it).</span><span class="ar">يعرض كل الأسماء المُدارة مع العنوان والحالة: <code dir="ltr">active</code> (نشط)، أو <code dir="ltr">missing</code> (حُذف السطر يدويًا)، أو <code dir="ltr">conflict</code> (سطر آخر يتجاوزه).</span></p>
+            <dl class="flags">
+              <div><dt dir="ltr">--json</dt><dd><span class="en">hostname, ip, port, url and status for each entry</span><span class="ar">الاسم والعنوان والمنفذ والرابط والحالة لكل مدخل</span></dd></div>
+            </dl>
+<pre class="code" dir="ltr"><code>localdns list
+localdns list --json</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-remove">
+            <header><h3 dir="ltr">remove</h3><code class="usage" dir="ltr">localdns remove &lt;hostname&gt;</code></header>
+            <p><span class="en">Remove a managed name. Asks <code dir="ltr">[y/N]</code> first unless you pass <code dir="ltr">--yes</code>. Entries Locly didn't create are never touched.</span><span class="ar">يحذف اسمًا مُدارًا. يسأل <code dir="ltr">[y/N]</code> أولًا إلا إذا مرّرت <code dir="ltr">--yes</code>. ولا يلمس أبدًا مدخلات لم يُنشئها Locly.</span></p>
+            <dl class="flags">
+              <div><dt dir="ltr">-y, --yes</dt><dd><span class="en">Don't ask for confirmation</span><span class="ar">بدون سؤال تأكيد</span></dd></div>
+              <div><dt dir="ltr">--json</dt><dd><span class="en">Print the removed entry as JSON</span><span class="ar">طباعة المدخل المحذوف بصيغة JSON</span></dd></div>
+            </dl>
+<pre class="code" dir="ltr"><code>localdns remove app.local
+localdns remove app.local --yes</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-status">
+            <header><h3 dir="ltr">status</h3><code class="usage" dir="ltr">localdns status</code></header>
+            <p><span class="en">Shows where the hosts file and config live, whether you can write to them, and the health of each entry.</span><span class="ar">يعرض مكان ملف hosts وملف الإعدادات، وهل يمكنك الكتابة فيهما، وحالة كل مدخل.</span></p>
+            <dl class="flags">
+              <div><dt dir="ltr">--json</dt><dd><span class="en">Includes <code dir="ltr">healthy</code>, <code dir="ltr">writable</code> and counts</span><span class="ar">يتضمن <code dir="ltr">healthy</code> و<code dir="ltr">writable</code> والأعداد</span></dd></div>
+            </dl>
+<pre class="code" dir="ltr"><code>localdns status
+localdns status --json</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-doctor">
+            <header><h3 dir="ltr">doctor</h3><code class="usage" dir="ltr">localdns doctor</code></header>
+            <p><span class="en">Runs seven checks (OS, hosts file found, readable and writable, Locly section, config, UI port) and prints a fix for anything wrong.</span><span class="ar">يُجري سبعة فحوصات (النظام، ووجود ملف hosts وإمكانية قراءته والكتابة فيه، وقسم Locly، والإعدادات، ومنفذ الواجهة) ويطبع طريقة الإصلاح لأي مشكلة.</span></p>
+<pre class="code" dir="ltr"><code><span class="t-ok">✓</span> Operating system supported
+<span class="t-ok">✓</span> Hosts file found
+<span class="t-ok">✓</span> Hosts file readable
+<span class="t-ok">✓</span> Hosts file writable
+<span class="t-ok">✓</span> LocalDNS section valid
+<span class="t-ok">✓</span> Configuration valid
+<span class="t-ok">✓</span> Local UI available
+
+Everything looks good.</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-ui">
+            <header><h3 dir="ltr">ui</h3><code class="usage" dir="ltr">localdns ui</code></header>
+            <p><span class="en">Starts the web interface on <code dir="ltr">http://127.0.0.1:7357</code> (localhost only). Stop it with Ctrl+C. To add or delete from the UI on macOS or Linux, run <code dir="ltr">sudo localdns ui</code>.</span><span class="ar">يشغّل واجهة الويب على <code dir="ltr">http://127.0.0.1:7357</code> (على localhost فقط). أوقفها بـ Ctrl+C. وللإضافة أو الحذف من الواجهة على macOS أو Linux شغّل <code dir="ltr">sudo localdns ui</code>.</span></p>
+            <dl class="flags">
+              <div><dt dir="ltr">--port &lt;port&gt;</dt><dd><span class="en">Use another port (default 7357)</span><span class="ar">استخدام منفذ آخر (الافتراضي 7357)</span></dd></div>
+              <div><dt dir="ltr">--open</dt><dd><span class="en">Open it in your browser</span><span class="ar">فتحها في المتصفح</span></dd></div>
+            </dl>
+<pre class="code" dir="ltr"><code>localdns ui
+localdns ui --port 8080 --open</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-uninstall">
+            <header><h3 dir="ltr">uninstall</h3><code class="usage" dir="ltr">localdns uninstall</code></header>
+            <p><span class="en">Removes Locly's hosts entries, its configuration and the binary. Your other hosts entries are not modified.</span><span class="ar">يحذف مدخلات Locly من ملف hosts وإعداداته والبرنامج نفسه. مدخلاتك الأخرى في ملف hosts لا تتغيّر.</span></p>
+            <dl class="flags">
+              <div><dt dir="ltr">-y, --yes</dt><dd><span class="en">Don't ask for confirmation</span><span class="ar">بدون سؤال تأكيد</span></dd></div>
+              <div><dt dir="ltr">--keep-binary</dt><dd><span class="en">Keep the <code dir="ltr">localdns</code> program</span><span class="ar">الإبقاء على برنامج <code dir="ltr">localdns</code></span></dd></div>
+            </dl>
+<pre class="code" dir="ltr"><code>localdns uninstall
+localdns uninstall --yes</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-info">
+            <header><h3 dir="ltr">info</h3><code class="usage" dir="ltr">localdns info</code></header>
+            <p><span class="en">An overview of every command, flag, exit code and file location. The best starting point for people and AI agents alike.</span><span class="ar">نظرة شاملة على كل الأوامر والخيارات ورموز الخروج وأماكن الملفات. أفضل نقطة بداية للبشر ولوكلاء الذكاء الاصطناعي على حد سواء.</span></p>
+<pre class="code" dir="ltr"><code>localdns info
+localdns info --json
+localdns add --help</code></pre>
+          </article>
+        </div>
+
+        <div class="ref-grid">
+          <div>
+            <h3><span class="en">Flags for every command</span><span class="ar">خيارات لكل الأوامر</span></h3>
+            <div class="table-wrap">
+              <table class="ref-table">
+                <tbody>
+                  <tr><td dir="ltr"><code>--json</code></td><td><span class="en">Machine-readable output, errors included</span><span class="ar">مخرجات قابلة للقراءة آليًا، ومنها الأخطاء</span></td></tr>
+                  <tr><td dir="ltr"><code>-h, --help</code></td><td><span class="en">Help for the command</span><span class="ar">مساعدة للأمر</span></td></tr>
+                  <tr><td dir="ltr"><code>--no-color</code></td><td><span class="en">Plain output (or set <code dir="ltr">NO_COLOR</code>)</span><span class="ar">مخرجات بلا ألوان (أو اضبط <code dir="ltr">NO_COLOR</code>)</span></td></tr>
+                  <tr><td dir="ltr"><code>--hosts-file</code></td><td><span class="en">Use another hosts file (tests, CI)</span><span class="ar">استخدام ملف hosts آخر (للاختبار وCI)</span></td></tr>
+                  <tr><td dir="ltr"><code>--config-dir</code></td><td><span class="en">Use another config folder</span><span class="ar">استخدام مجلد إعدادات آخر</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h3><span class="en">Exit codes</span><span class="ar">رموز الخروج</span></h3>
+            <div class="table-wrap">
+              <table class="ref-table codes">
+                <tbody>
+                  <tr><td dir="ltr"><code>0</code></td><td><span class="en">Success</span><span class="ar">نجاح</span></td></tr>
+                  <tr><td dir="ltr"><code>1</code></td><td><span class="en">Unexpected error, or doctor found a problem</span><span class="ar">خطأ غير متوقع، أو وجد doctor مشكلة</span></td></tr>
+                  <tr><td dir="ltr"><code>2</code></td><td><span class="en">Invalid usage or input</span><span class="ar">استخدام أو مدخلات غير صحيحة</span></td></tr>
+                  <tr><td dir="ltr"><code>3</code></td><td><span class="en">Hostname not found</span><span class="ar">الاسم غير موجود</span></td></tr>
+                  <tr><td dir="ltr"><code>4</code></td><td><span class="en">Conflict: exists, or defined outside Locly</span><span class="ar">تعارض: موجود مسبقًا، أو معرَّف خارج Locly</span></td></tr>
+                  <tr><td dir="ltr"><code>5</code></td><td><span class="en">Administrator rights required</span><span class="ar">تلزم صلاحيات المسؤول</span></td></tr>
+                  <tr><td dir="ltr"><code>6</code></td><td><span class="en">Hosts section or config is invalid</span><span class="ar">قسم hosts أو الإعدادات غير صالحة</span></td></tr>
+                  <tr><td dir="ltr"><code>7</code></td><td><span class="en">Not confirmed (or <code dir="ltr">--yes</code> missing without a terminal)</span><span class="ar">لم يتم التأكيد (أو غياب <code dir="ltr">--yes</code> بدون طرفية)</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-plain">
+          <svg width="20" height="20" aria-hidden="true"><use href="#i-globe"/></svg>
+          <div>
+            <p><span class="en"><strong>Allowed names.</strong> Only suffixes reserved for local use are accepted, so Locly can never override a real internet domain:</span><span class="ar"><strong>الأسماء المسموحة.</strong> يقبل Locly فقط اللواحق المخصصة للاستخدام المحلي، لذلك لا يمكنه أبدًا تجاوز نطاق حقيقي على الإنترنت:</span></p>
+            <p class="suffixes" dir="ltr"><code>.local</code><code>.localhost</code><code>.test</code><code>.example</code><code>.internal</code><code>.home.arpa</code><code>.lan</code><code>.localdomain</code></p>
+            <p><span class="en"><strong>Allowed addresses.</strong> Loopback (<code dir="ltr">127.0.0.0/8</code>, <code dir="ltr">::1</code>), private networks (<code dir="ltr">10/8</code>, <code dir="ltr">172.16/12</code>, <code dir="ltr">192.168/16</code>, <code dir="ltr">fc00::/7</code>), link-local, and <code dir="ltr">100.64/10</code> (e.g. Tailscale). Ports 1–65535 are optional.</span><span class="ar"><strong>العناوين المسموحة.</strong> عناوين الجهاز نفسه (<code dir="ltr">127.0.0.0/8</code> و<code dir="ltr">::1</code>)، والشبكات الخاصة (<code dir="ltr">10/8</code> و<code dir="ltr">172.16/12</code> و<code dir="ltr">192.168/16</code> و<code dir="ltr">fc00::/7</code>)، وعناوين link-local، و<code dir="ltr">100.64/10</code> (مثل Tailscale). والمنفذ (1–65535) اختياري.</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ AI AGENTS =========================== -->
+    <section class="section section-soft" id="agents">
+      <div class="container agents-grid">
+        <div>
+          <p class="kicker"><span class="en">AI agents</span><span class="ar">وكلاء الذكاء الاصطناعي</span></p>
+          <h2><span class="en">Made for AI agents, too</span><span class="ar">مصمَّم لوكلاء الذكاء الاصطناعي أيضًا</span></h2>
+          <p class="section-lead"><span class="en">Claude Code, Codex, OpenCode, Cursor: any agent can drive Locly without a GUI and without interactive prompts.</span><span class="ar">يستطيع Claude Code وCodex وOpenCode وCursor، وأي وكيل آخر، التحكم بـ Locly دون واجهة رسومية ودون أسئلة تفاعلية.</span></p>
+          <ul class="agent-points">
+            <li>
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-terminal"/></svg>
+              <div><strong><span class="en">Discoverable</span><span class="ar">قابل للاكتشاف</span></strong>
+              <p><span class="en"><code dir="ltr">localdns info --json</code> describes every command, flag and exit code.</span><span class="ar">الأمر <code dir="ltr">localdns info --json</code> يصف كل أمر وخيار ورمز خروج.</span></p></div>
+            </li>
+            <li>
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-file"/></svg>
+              <div><strong><span class="en">Machine-readable</span><span class="ar">مخرجات آلية</span></strong>
+              <p><span class="en"><code dir="ltr">--json</code> on every command, errors included. No scraping.</span><span class="ar"><code dir="ltr">--json</code> متاح في كل أمر، ومنها الأخطاء، دون الحاجة لتحليل النصوص.</span></p></div>
+            </li>
+            <li>
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-bot"/></svg>
+              <div><strong><span class="en">Never hangs</span><span class="ar">لا يتوقف بانتظار إدخال</span></strong>
+              <p><span class="en">Without a terminal, confirmations fail fast with exit code 7 unless <code dir="ltr">--yes</code> is given.</span><span class="ar">بدون طرفية، يفشل طلب التأكيد فورًا برمز الخروج 7 إلا إذا مُرِّر <code dir="ltr">--yes</code>.</span></p></div>
+            </li>
+            <li>
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-check"/></svg>
+              <div><strong><span class="en">Idempotent and predictable</span><span class="ar">آمن عند التكرار ومتوقَّع</span></strong>
+              <p><span class="en">Repeating <code dir="ltr">add</code> is safe, and exit codes are stable.</span><span class="ar">تكرار <code dir="ltr">add</code> آمن، ورموز الخروج ثابتة.</span></p></div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="agent-code">
+          <div class="terminal" dir="ltr">
+            <div class="terminal-bar" aria-hidden="true"><span></span><span></span><span></span><em>agent session</em></div>
+<pre class="terminal-body"><code><span class="t-prompt">$</span> localdns info --json
+<span class="t-prompt">$</span> localdns add api.local 127.0.0.1:3002 --json
+{
+  <span class="t-key">"action"</span>: <span class="t-str">"added"</span>,
+  <span class="t-key">"entry"</span>: {
+    <span class="t-key">"hostname"</span>: <span class="t-str">"api.local"</span>,
+    <span class="t-key">"ip"</span>: <span class="t-str">"127.0.0.1"</span>,
+    <span class="t-key">"port"</span>: <span class="t-num">3002</span>,
+    <span class="t-key">"address"</span>: <span class="t-str">"127.0.0.1:3002"</span>,
+    <span class="t-key">"url"</span>: <span class="t-str">"http://api.local:3002"</span>,
+    <span class="t-key">"status"</span>: <span class="t-str">"active"</span>
+  }
+}
+<span class="t-prompt">$</span> localdns add google.com 127.0.0.1 --json   <span class="t-dim"># exit 2</span>
+{
+  <span class="t-key">"error"</span>: {
+    <span class="t-key">"code"</span>: <span class="t-str">"invalid_input"</span>,
+    <span class="t-key">"message"</span>: <span class="t-str">"google.com is not a local hostname"</span>,
+    <span class="t-key">"hint"</span>: <span class="t-str">"LocalDNS only manages local hostnames …"</span>
+  }
+}
+<span class="t-prompt">$</span> localdns remove api.local --yes --json</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ SECURITY ============================ -->
+    <section class="section" id="security">
+      <div class="container">
+        <div class="section-head">
+          <p class="kicker"><span class="en">Security</span><span class="ar">الأمان</span></p>
+          <h2><span class="en">Secure by design</span><span class="ar">آمن من الأساس</span></h2>
+          <p><span class="en">Locly manages local hostname mappings on this machine. Nothing more.</span><span class="ar">يدير Locly ربط الأسماء المحلية على هذا الجهاز فقط. لا أكثر.</span></p>
+        </div>
+
+        <ul class="never-grid">
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No DNS server</span><span class="ar">ليس خادم DNS</span></h3><p><span class="en">It never answers DNS queries. Your OS resolves names, as always.</span><span class="ar">لا يجيب على استعلامات DNS أبدًا، فنظام التشغيل هو من يترجم الأسماء كالمعتاد.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No root daemon</span><span class="ar">لا خدمة بصلاحيات root</span></h3><p><span class="en">Only the one command that edits the hosts file is elevated, and then it exits.</span><span class="ar">الأمر الذي يعدّل ملف hosts وحده يعمل بصلاحيات مرتفعة، ثم ينتهي.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No open ports</span><span class="ar">لا منافذ مفتوحة</span></h3><p><span class="en">The UI binds to 127.0.0.1 only while it runs, with DNS-rebinding and CSRF protection.</span><span class="ar">الواجهة مربوطة بـ 127.0.0.1 فقط أثناء تشغيلها، مع حماية من DNS rebinding وCSRF.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No telemetry</span><span class="ar">بلا تتبّع</span></h3><p><span class="en">No analytics, no outbound requests. Your data never leaves your machine.</span><span class="ar">لا تحليلات ولا طلبات خارجية. بياناتك لا تغادر جهازك أبدًا.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No network changes</span><span class="ar">لا تغييرات على الشبكة</span></h3><p><span class="en">No router, DNS, VPN, proxy or firewall changes. No traffic interception.</span><span class="ar">لا تعديل على الراوتر أو DNS أو VPN أو البروكسي أو الجدار الناري، ولا اعتراض لحركة المرور.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No edits outside its block</span><span class="ar">لا تعديل خارج قسمه</span></h3><p><span class="en">Lines outside <code dir="ltr"># BEGIN/END LOCALDNS</code> are preserved byte for byte.</span><span class="ar">الأسطر خارج <code dir="ltr"># BEGIN/END LOCALDNS</code> تبقى كما هي حرفيًا.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No internet domains</span><span class="ar">لا نطاقات إنترنت</span></h3><p><span class="en"><code dir="ltr">google.com</code> can't be mapped, so real domains always use normal DNS.</span><span class="ar">لا يمكن ربط <code dir="ltr">google.com</code>، لذا تستخدم النطاقات الحقيقية DNS المعتاد دائمًا.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No unverified installs</span><span class="ar">لا تثبيت دون تحقق</span></h3><p><span class="en">The installer checks SHA-256 checksums before copying anything.</span><span class="ar">يتحقق المثبِّت من بصمات SHA-256 قبل نسخ أي شيء.</span></p></li>
+        </ul>
+
+        <div class="proof">
+          <svg width="28" height="28" aria-hidden="true"><use href="#i-shield"/></svg>
+          <div>
+            <h3><span class="en">Enforced by tests, not promises</span><span class="ar">مضمون بالاختبارات، لا بالوعود</span></h3>
+            <p><span class="en">An architecture test fails if the core ever imports networking or process-execution packages. Another audits the source code to make sure the loopback UI is the only listener. CI proves that existing hosts entries survive every operation on macOS, Linux and Windows, without ever touching the runner's real hosts file.</span><span class="ar">يفشل اختبار معماري إذا استورد قلب البرنامج أي مكتبة شبكات أو تشغيل عمليات. واختبار آخر يفحص الشيفرة للتأكد من أن واجهة localhost هي المستمع الوحيد. ويثبت CI أن مدخلات hosts الموجودة تبقى سليمة بعد كل عملية على macOS وLinux وWindows، دون أن يلمس ملف hosts الحقيقي لجهاز الاختبار.</span></p>
+            <p class="this-page"><span class="en">This page too: no cookies, no trackers, no third-party scripts or fonts.</span><span class="ar">وهذه الصفحة أيضًا: بلا ملفات تعريف ارتباط، وبلا متتبّعات، وبلا سكربتات أو خطوط من أطراف خارجية.</span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================== FAQ ============================== -->
+    <section class="section section-soft" id="faq">
+      <div class="container narrow">
+        <div class="section-head">
+          <p class="kicker"><span class="en">FAQ</span><span class="ar">أسئلة شائعة</span></p>
+          <h2><span class="en">Questions, answered</span><span class="ar">إجابات لأسئلتك</span></h2>
+        </div>
+        <div class="faq">
+          <details>
+            <summary><span class="en">Is Locly a DNS server?</span><span class="ar">هل Locly خادم DNS؟</span></summary>
+            <p><span class="en">No. It edits a clearly marked block in your hosts file, which your operating system already reads before DNS. Nothing listens on port 53.</span><span class="ar">لا. هو يعدّل قسمًا محددًا في ملف hosts الذي يقرؤه نظام التشغيل أصلًا قبل DNS. ولا شيء يستمع على المنفذ 53.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">Why can't I add google.com?</span><span class="ar">لماذا لا أستطيع إضافة google.com؟</span></summary>
+            <p><span class="en">On purpose. Locly only accepts names reserved for local use (<code dir="ltr">.local</code>, <code dir="ltr">.test</code>, <code dir="ltr">.internal</code>…), so it can never hijack a real website.</span><span class="ar">عن قصد. يقبل Locly فقط الأسماء المخصصة للاستخدام المحلي (<code dir="ltr">.local</code> و<code dir="ltr">.test</code> و<code dir="ltr">.internal</code>…) حتى لا يتمكن أبدًا من اختطاف موقع حقيقي.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">Do I need administrator rights?</span><span class="ar">هل أحتاج صلاحيات المسؤول؟</span></summary>
+            <p><span class="en">Only to change the hosts file. On macOS and Linux, <code dir="ltr">localdns</code> asks for <code dir="ltr">sudo</code> for just that command. On Windows, use a terminal opened with “Run as administrator”. Reading commands never need it.</span><span class="ar">فقط لتعديل ملف hosts. على macOS وLinux يطلب <code dir="ltr">localdns</code> صلاحية <code dir="ltr">sudo</code> لذلك الأمر وحده. وعلى Windows استخدم طرفية مفتوحة بخيار «تشغيل كمسؤول». أوامر القراءة لا تحتاجها أبدًا.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">Where is the port stored?</span><span class="ar">أين يُحفظ رقم المنفذ؟</span></summary>
+            <p><span class="en">Hosts files can't hold ports, so Locly keeps them in <code dir="ltr">/etc/localdns/config.json</code> (<code dir="ltr">C:\ProgramData\LocalDNS</code> on Windows) to show full URLs in <code dir="ltr">list</code>, JSON and the UI.</span><span class="ar">ملف hosts لا يدعم المنافذ، لذا يحفظها Locly في <code dir="ltr">/etc/localdns/config.json</code> (وفي <code dir="ltr">C:\ProgramData\LocalDNS</code> على Windows) ليعرض الروابط الكاملة في <code dir="ltr">list</code> ومخرجات JSON والواجهة.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">Why are .local names slow on my Mac?</span><span class="ar">لماذا أسماء ‎.local بطيئة على جهاز Mac؟</span></summary>
+            <p><span class="en">macOS also uses <code dir="ltr">.local</code> for Bonjour (mDNS), and some lookups wait for it. If you notice delays, use <code dir="ltr">.test</code> or <code dir="ltr">.localhost</code> names.</span><span class="ar">يستخدم macOS اللاحقة <code dir="ltr">.local</code> أيضًا لخدمة Bonjour (mDNS)، وبعض عمليات البحث تنتظرها. إذا لاحظت تأخيرًا فاستخدم أسماء تنتهي بـ <code dir="ltr">.test</code> أو <code dir="ltr">.localhost</code>.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">A name doesn't work yet. What should I do?</span><span class="ar">اسم لا يعمل بعد، ماذا أفعل؟</span></summary>
+            <p><span class="en">Run <code dir="ltr">localdns doctor</code>: it checks everything and prints a fix for each problem. Your system or browser may also cache old lookups, so try a new tab.</span><span class="ar">شغّل <code dir="ltr">localdns doctor</code>: سيفحص كل شيء ويطبع طريقة إصلاح كل مشكلة. وقد يحتفظ النظام أو المتصفح بنتائج قديمة، فجرّب تبويبًا جديدًا.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">How do I remove everything?</span><span class="ar">كيف أحذف كل شيء؟</span></summary>
+            <p><span class="en">Run <code dir="ltr">localdns uninstall</code>. It removes Locly's entries, its config and the binary, and leaves every other hosts entry exactly as it was.</span><span class="ar">شغّل <code dir="ltr">localdns uninstall</code>. سيحذف مدخلات Locly وإعداداته والبرنامج نفسه، ويترك كل مدخلات hosts الأخرى كما كانت تمامًا.</span></p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================== CTA ============================== -->
+    <section class="cta">
+      <div class="container">
+        <div class="cta-card">
+          <h2><span class="en">Give your local services real names</span><span class="ar">امنح خدماتك المحلية أسماء حقيقية</span></h2>
+          <p><span class="en">One line to install. One command per name.</span><span class="ar">سطر واحد للتثبيت، وأمر واحد لكل اسم.</span></p>
+          <div class="cmd cmd-on-dark" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh</code><button type="button" class="copy" data-copy="curl -fsSL https://github.com/Devehab/Locly-DNS/releases/latest/download/install.sh | sh"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
+          <div class="hero-cta center">
+            <a class="btn btn-light" href="https://github.com/Devehab/Locly-DNS"><svg width="18" height="18" aria-hidden="true"><use href="#i-github"/></svg><span class="en">Star on GitHub</span><span class="ar">ادعمه بنجمة على GitHub</span></a>
+            <a class="btn btn-outline-light" href="https://github.com/Devehab/Locly-DNS/releases"><span class="en">Releases</span><span class="ar">الإصدارات</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="brand">
+        <img src="assets/img/logo.svg" alt="" width="24" height="24">
+        <span class="brand-name">Locly</span>
+        <span class="footer-tag"><span class="en">A local-only hostname manager for developers and AI agents.</span><span class="ar">مدير أسماء محلية للمطورين ولوكلاء الذكاء الاصطناعي.</span></span>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://github.com/Devehab/Locly-DNS">GitHub</a>
+        <a href="https://github.com/Devehab/Locly-DNS/releases"><span class="en">Releases</span><span class="ar">الإصدارات</span></a>
+        <a href="https://github.com/Devehab/Locly-DNS#readme"><span class="en">Documentation</span><span class="ar">التوثيق</span></a>
+        <a href="https://github.com/Devehab/Locly-DNS/security/policy"><span class="en">Security policy</span><span class="ar">سياسة الأمان</span></a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
