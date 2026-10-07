@@ -13,6 +13,7 @@
 #   LOCALDNS_INSTALL_DIR  install directory (default: /usr/local/bin or ~/.local/bin)
 #   LOCALDNS_REPO         GitHub repository (default: Devehab/Locly-DNS)
 #   LOCALDNS_BASE_URL     download from this URL instead of GitHub Releases
+#   LOCALDNS_NO_UI        set to 1 to skip opening the dashboard after installing
 set -eu
 
 REPO="${LOCALDNS_REPO:-Devehab/Locly-DNS}"
@@ -148,7 +149,21 @@ main() {
 	say "Get started:"
 	say "  localdns info"
 	say "  localdns add app.local 127.0.0.1:3000"
-	say "  localdns ui"
+	say "  localdns ui            # dashboard at http://127.0.0.1:7357"
+	say ""
+	say "Adding or removing names edits /etc/hosts, so LocalDNS asks for your"
+	say "password (sudo) for that one action. Nothing keeps running in the background."
+
+	# A person installing from their own terminal gets the dashboard right
+	# away. Scripts, CI and SSH sessions just get the address above.
+	if [ -z "${LOCALDNS_NO_UI:-}" ] && [ -t 1 ] && [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}" ] && (: </dev/tty) 2>/dev/null; then
+		say ""
+		say "Opening the dashboard (http://127.0.0.1:7357)..."
+		say ""
+		rm -rf "$tmp"
+		trap - EXIT INT TERM
+		"$INSTALL_DIR/localdns" ui </dev/tty || true
+	fi
 }
 
 main "$@"

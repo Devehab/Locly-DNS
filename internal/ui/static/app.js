@@ -20,6 +20,19 @@
     }
     return fetch(path, opts).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (data) {
+        if (res.status === 403 && data.error && /token/i.test(data.error.message || "")) {
+          // The UI was restarted (each run has a new security token) and this
+          // tab is from the previous run: reload once to pick up the new one.
+          var last = 0;
+          try { last = +sessionStorage.getItem("localdns-reloaded") || 0; } catch (e) {}
+          if (Date.now() - last > 10000) {
+            try { sessionStorage.setItem("localdns-reloaded", String(Date.now())); } catch (e) {}
+            showBanner("LocalDNS was restarted. Reloading…", "warn");
+            location.reload();
+            return new Promise(function () {});
+          }
+          throw { message: "This page belongs to a LocalDNS UI that is no longer running", hint: "Run `localdns ui` and open the address it prints." };
+        }
         if (!res.ok) {
           var err = (data && data.error) || { message: "Request failed (" + res.status + ")" };
           throw err;
@@ -110,7 +123,7 @@
         readOnlyHint = status.writable ? "" : (status.read_only_hint || "The hosts file is read-only.");
         $("footer-hosts").textContent = "Hosts file: " + status.hosts_file;
         if (readOnlyHint) {
-          showBanner("Read-only mode: " + readOnlyHint, "warn");
+          showBanner("Read-only: you can view hosts but not add or delete them. " + readOnlyHint, "warn");
         } else {
           showBanner("");
         }
@@ -130,7 +143,7 @@
   // Add host
   $("add-button").addEventListener("click", function () {
     $("add-form").reset();
-    setError($("add-error"), readOnlyHint ? "Read-only mode: " + readOnlyHint : "");
+    setError($("add-error"), readOnlyHint ? "Read-only: " + readOnlyHint : "");
     addDialog.showModal();
     $("add-hostname").focus();
   });

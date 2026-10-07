@@ -81,9 +81,10 @@
         Write-Host 'Get started (open a new terminal first if localdns is not found):'
         Write-Host '  localdns info'
         Write-Host '  localdns add app.local 127.0.0.1:3000'
-        Write-Host '  localdns ui'
+        Write-Host '  localdns ui            # dashboard at http://127.0.0.1:7357'
         Write-Host ''
-        Write-Host 'Editing the hosts file needs a terminal opened with "Run as administrator".'
+        Write-Host 'Adding or removing names edits the hosts file, so run localdns from a terminal'
+        Write-Host 'opened with "Run as administrator" (reading works in any terminal).'
     } finally {
         Remove-Item -Recurse -Force -Path $tmp -ErrorAction SilentlyContinue
     }

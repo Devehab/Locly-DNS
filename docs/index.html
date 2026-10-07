@@ -484,7 +484,8 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
         <div class="section-head">
           <p class="kicker"><span class="en">Web UI</span><span class="ar">واجهة الويب</span></p>
           <h2><span class="en">Prefer clicking? There's a web UI</span><span class="ar">تفضّل النقر؟ هناك واجهة ويب</span></h2>
-          <p><span class="en">Run <code dir="ltr">localdns ui</code> and open <code dir="ltr">http://127.0.0.1:7357</code>. Add and delete hosts, and see IPs, ports, URLs and status at a glance. It's built into the binary (no Node.js or Python) and listens on localhost only.</span><span class="ar">شغّل <code dir="ltr">localdns ui</code> وافتح <code dir="ltr">http://127.0.0.1:7357</code>. أضف الأسماء واحذفها، وشاهد العناوين والمنافذ والروابط والحالة بنظرة واحدة. الواجهة مدمجة في البرنامج نفسه (بلا Node.js أو Python) وتعمل على localhost فقط.</span></p>
+          <p><span class="en">Run <code dir="ltr">localdns ui</code> and it opens <code dir="ltr">http://127.0.0.1:7357</code> in your browser. Add and delete hosts, and see IPs, ports, URLs and status at a glance. It's built into the binary (no Node.js or Python) and listens on localhost only.</span><span class="ar">شغّل <code dir="ltr">localdns ui</code> وسيفتح <code dir="ltr">http://127.0.0.1:7357</code> في متصفحك. أضف الأسماء واحذفها، وشاهد العناوين والمنافذ والروابط والحالة بنظرة واحدة. الواجهة مدمجة في البرنامج نفسه (بلا Node.js أو Python) وتعمل على localhost فقط.</span></p>
+          <p class="sudo-note"><span class="en"><strong>It will ask for your password.</strong> Adding or deleting names edits <code dir="ltr">/etc/hosts</code>, which only an administrator can change, so on macOS and Linux the UI asks for sudo when it starts. Only the UI server runs with sudo, and Ctrl+C stops it completely. Want view-only? <code dir="ltr">localdns ui --no-elevate</code>.</span><span class="ar"><strong>ستُطلب منك كلمة المرور.</strong> إضافة الأسماء أو حذفها تعدّل <code dir="ltr">/etc/hosts</code>، ولا يغيّره إلا المسؤول، لذلك تطلب الواجهة sudo عند تشغيلها على macOS وLinux. خادم الواجهة وحده يعمل بـ sudo، و Ctrl+C يوقفه تمامًا. تريد العرض فقط؟ <code dir="ltr">localdns ui --no-elevate</code>.</span></p>
         </div>
 
         <figure class="browser">
@@ -754,13 +755,15 @@ Everything looks good.</code></pre>
 
           <article class="cmd-card" id="cmd-ui">
             <header><h3 dir="ltr">ui</h3><code class="usage" dir="ltr">localdns ui</code></header>
-            <p><span class="en">Starts the web interface on <code dir="ltr">http://127.0.0.1:7357</code> (localhost only). Stop it with Ctrl+C. To add or delete from the UI on macOS or Linux, run <code dir="ltr">sudo localdns ui</code>.</span><span class="ar">يشغّل واجهة الويب على <code dir="ltr">http://127.0.0.1:7357</code> (على localhost فقط). أوقفها بـ Ctrl+C. وللإضافة أو الحذف من الواجهة على macOS أو Linux شغّل <code dir="ltr">sudo localdns ui</code>.</span></p>
+            <p><span class="en">Starts the web interface on <code dir="ltr">http://127.0.0.1:7357</code> (localhost only) and opens it in your browser. Because adding and deleting edits <code dir="ltr">/etc/hosts</code>, it asks for your password (sudo) on macOS and Linux; only the UI runs with sudo, and Ctrl+C stops everything.</span><span class="ar">يشغّل واجهة الويب على <code dir="ltr">http://127.0.0.1:7357</code> (على localhost فقط) ويفتحها في متصفحك. ولأن الإضافة والحذف يعدّلان <code dir="ltr">/etc/hosts</code>، يطلب كلمة المرور (sudo) على macOS وLinux؛ الواجهة وحدها تعمل بـ sudo، و Ctrl+C يوقف كل شيء.</span></p>
             <dl class="flags">
               <div><dt dir="ltr">--port &lt;port&gt;</dt><dd><span class="en">Use another port (default 7357)</span><span class="ar">استخدام منفذ آخر (الافتراضي 7357)</span></dd></div>
-              <div><dt dir="ltr">--open</dt><dd><span class="en">Open it in your browser</span><span class="ar">فتحها في المتصفح</span></dd></div>
+              <div><dt dir="ltr">--no-open</dt><dd><span class="en">Don't open the browser</span><span class="ar">بدون فتح المتصفح تلقائيًا</span></dd></div>
+              <div><dt dir="ltr">--no-elevate</dt><dd><span class="en">Read-only, never ask for sudo</span><span class="ar">للقراءة فقط، بدون طلب sudo</span></dd></div>
             </dl>
 <pre class="code" dir="ltr"><code>localdns ui
-localdns ui --port 8080 --open</code></pre>
+localdns ui --port 8080
+localdns ui --no-elevate</code></pre>
           </article>
 
           <article class="cmd-card" id="cmd-uninstall">

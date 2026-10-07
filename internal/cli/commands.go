@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/devehab/locly-dns/internal/core"
 	"github.com/devehab/locly-dns/internal/fsutil"
@@ -22,6 +23,7 @@ const (
 	flagNoElevate
 	flagPort
 	flagOpen
+	flagNoOpen
 	flagKeepBinary
 )
 
@@ -35,7 +37,8 @@ var flagDocs = map[int]flagDoc{
 	flagForce:      {"--force", "Replace an existing entry that points somewhere else"},
 	flagNoElevate:  {"--no-elevate", "Never request administrator rights automatically (sudo)"},
 	flagPort:       {"--port <port>", "Port for the web UI (default 7357)"},
-	flagOpen:       {"--open", "Open the UI in your default browser"},
+	flagOpen:       {"--open", "Open the browser even without a terminal (scripts)"},
+	flagNoOpen:     {"--no-open", "Don't open your browser automatically"},
 	flagKeepBinary: {"--keep-binary", "Remove entries and configuration but keep the localdns binary"},
 }
 
@@ -129,11 +132,12 @@ func init() {
 		{
 			name: "ui", summary: "Open the web interface", listed: true,
 			usage: "localdns ui",
-			long: "Start the LocalDNS web interface on http://127.0.0.1:7357. It listens on\n" +
-				"localhost only and stops when you press Ctrl+C. To add or delete hosts from\n" +
-				"the UI on macOS or Linux, start it with sudo.",
-			flags:    []int{flagPort, flagOpen},
-			examples: []string{"localdns ui", "localdns ui --port 8080 --open", "sudo localdns ui"},
+			long: "Start the LocalDNS web interface on http://127.0.0.1:7357 and open it in your\n" +
+				"browser. It listens on localhost only and stops when you press Ctrl+C.\n" +
+				"On macOS and Linux it asks for your password (sudo) so the UI can add and\n" +
+				"delete hosts; without a terminal it starts read-only.",
+			flags:    []int{flagPort, flagNoOpen, flagOpen, flagNoElevate},
+			examples: []string{"localdns ui", "localdns ui --port 8080", "localdns ui --no-open", "localdns ui --no-elevate"},
 			run:      runUI,
 		},
 		{
@@ -438,6 +442,30 @@ func runUI(c *runCtx) int {
 			Hint: "Use a port between 1 and 65535, e.g. --port 7357"})
 	}
 	m := c.manager()
+	writable := m.CheckWritable() == nil
+	openBrowser := c.shouldOpenBrowser()
+
+	// Interactive and read-only: ask for administrator rights so the UI can
+	// add and delete hosts. Only the UI server runs elevated; this
+	// (unprivileged) process opens the browser once the server answers, so
+	// the browser never runs as root.
+	if !writable && c.env.Interactive && !c.o.json {
+		stop := make(chan struct{})
+		if openBrowser && c.o.port != 0 {
+			go c.openWhenReady(c.o.port, stop)
+		}
+		perm := &core.Error{Code: core.CodePermission, Message: "the web UI needs administrator rights to edit " + c.hostsPath}
+		c.elevateNote = "To add and delete hosts, the web UI must edit " + c.hostsPath + ", which needs\n" +
+			"administrator rights. Enter your password to continue: only this UI process\n" +
+			"runs with sudo, and it stops completely when you press Ctrl+C.\n" +
+			"(Prefer read-only? Run: localdns ui --no-elevate)\n\n"
+		code, ok := c.tryElevate(perm, "--no-open")
+		close(stop)
+		if ok {
+			return code
+		}
+	}
+
 	ln, err := ui.Listen(c.o.port)
 	if err != nil {
 		hint := fmt.Sprintf("Is the LocalDNS UI already running? Open %s, or start it on another port: localdns ui --port %d",
@@ -448,9 +476,8 @@ func runUI(c *runCtx) int {
 	url := ui.URL(portNum)
 
 	readOnlyHint := ""
-	writable := m.CheckWritable() == nil
 	if !writable {
-		readOnlyHint = "Stop the UI (Ctrl+C) and start it with administrator rights: sudo localdns ui"
+		readOnlyHint = "Editing " + c.hostsPath + " needs administrator rights. Stop the UI (Ctrl+C) and run: sudo localdns ui"
 		if runtime.GOOS == "windows" {
 			readOnlyHint = "Stop the UI and run `localdns ui` from a terminal opened with \"Run as administrator\"."
 		}
@@ -470,13 +497,17 @@ func runUI(c *runCtx) int {
 		p.println("Open:")
 		p.println(url)
 		p.println()
+		if openBrowser {
+			p.println(p.dim("Opening it in your browser…"))
+			p.println()
+		}
 		if !writable {
 			p.println(p.warn() + " Read-only: " + readOnlyHint)
 			p.println()
 		}
 		p.println(p.dim("Listening on localhost only. Press Ctrl+C to stop."))
 	}
-	if c.o.open && c.env.OpenBrowser != nil {
+	if openBrowser && c.env.OpenBrowser != nil {
 		if err := c.env.OpenBrowser(url); err != nil {
 			c.errp.println(c.errp.warn() + " Could not open a browser: " + err.Error())
 		}
@@ -489,6 +520,34 @@ func runUI(c *runCtx) int {
 		c.out.println("Stopped.")
 	}
 	return ExitOK
+}
+
+// shouldOpenBrowser: open automatically for a person at a terminal, never in
+// JSON mode or when asked not to; --open forces it.
+func (c *runCtx) shouldOpenBrowser() bool {
+	if c.o.noOpen {
+		return false
+	}
+	return c.o.open || (c.env.Interactive && !c.o.json)
+}
+
+// openWhenReady opens the UI in the browser as soon as a LocalDNS UI answers
+// on port (the elevated server may wait for a password first).
+func (c *runCtx) openWhenReady(port int, stop <-chan struct{}) {
+	deadline := time.Now().Add(3 * time.Minute)
+	for time.Now().Before(deadline) {
+		select {
+		case <-stop:
+			return
+		case <-time.After(300 * time.Millisecond):
+		}
+		if ui.Probe(port) {
+			if c.env.OpenBrowser != nil {
+				_ = c.env.OpenBrowser(ui.URL(port))
+			}
+			return
+		}
+	}
 }
 
 // ---- uninstall ----

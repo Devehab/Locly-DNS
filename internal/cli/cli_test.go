@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -493,5 +494,112 @@ func TestUI(t *testing.T) {
 func TestQuoteArgs(t *testing.T) {
 	if got := quoteArgs([]string{"add", "a.local", "it's here"}); got != `add a.local 'it'\''s here'` {
 		t.Fatalf("got %s", got)
+	}
+}
+
+func TestUIOpensBrowserForPeopleOnly(t *testing.T) {
+	h := newHarness(t)
+	cases := []struct {
+		name        string
+		args        []string
+		interactive bool
+		wantOpen    bool
+	}{
+		{"terminal", []string{"ui", "--port", "0"}, true, true},
+		{"terminal --no-open", []string{"ui", "--port", "0", "--no-open"}, true, false},
+		{"script", []string{"ui", "--port", "0"}, false, false},
+		{"script --open", []string{"ui", "--port", "0", "--open"}, false, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var opened []string
+			var mu sync.Mutex
+			pr, pw := io.Pipe()
+			ctx, cancel := context.WithCancel(context.Background())
+			done := make(chan int, 1)
+			go func() {
+				done <- Run(Env{
+					Args:        tc.args,
+					Stdout:      pw,
+					Stderr:      io.Discard,
+					Context:     ctx,
+					Interactive: tc.interactive,
+					Getenv: func(k string) string {
+						return map[string]string{"LOCALDNS_HOSTS_FILE": h.hosts.Path(), "LOCALDNS_CONFIG_DIR": h.configDir}[k]
+					},
+					OpenBrowser: func(u string) error { mu.Lock(); opened = append(opened, u); mu.Unlock(); return nil },
+				})
+				_ = pw.Close()
+			}()
+			// Wait until the server reports that it is running.
+			buf := make([]byte, 4096)
+			var got strings.Builder
+			for !strings.Contains(got.String(), "Press Ctrl+C") {
+				n, err := pr.Read(buf)
+				got.Write(buf[:n])
+				if err != nil {
+					t.Fatalf("ui ended early: %v\n%s", err, got.String())
+				}
+			}
+			go func() { _, _ = io.Copy(io.Discard, pr) }()
+			cancel()
+			if code := <-done; code != 0 {
+				t.Fatalf("exit %d", code)
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if tc.wantOpen != (len(opened) == 1) {
+				t.Fatalf("opened = %v, want open=%v", opened, tc.wantOpen)
+			}
+			if tc.wantOpen && !strings.HasPrefix(opened[0], "http://127.0.0.1:") {
+				t.Fatalf("opened %q", opened[0])
+			}
+		})
+	}
+}
+
+func TestUIAsksForAdminRightsWhenReadOnly(t *testing.T) {
+	h := newHarness(t)
+	h.readOnly = true
+	h.elevator.available = true
+	r := h.run([]string{"ui", "--port", "7399"}, interactive(""))
+	if r.code != 0 || len(h.elevator.calls) != 1 {
+		t.Fatalf("ui should re-run elevated: %+v calls=%v", r, h.elevator.calls)
+	}
+	call := strings.Join(h.elevator.calls[0], " ")
+	for _, want := range []string{" ui --port 7399", "--no-open", "--no-elevate", "--hosts-file=" + h.hosts.Path()} {
+		if !strings.Contains(call, want) {
+			t.Errorf("elevated call %q missing %q", call, want)
+		}
+	}
+
+	// --no-elevate and non-interactive sessions start read-only instead.
+	for _, opts := range [][]string{{"ui", "--port", "0", "--no-elevate", "--json"}} {
+		calls := len(h.elevator.calls)
+		pr, pw := io.Pipe()
+		ctx, cancel := context.WithCancel(context.Background())
+		done := make(chan int, 1)
+		go func() {
+			done <- Run(Env{Args: opts, Stdout: pw, Stderr: io.Discard, Context: ctx, Interactive: true,
+				Elevator: h.elevator,
+				Getenv: func(k string) string {
+					return map[string]string{"LOCALDNS_HOSTS_FILE": h.hosts.Path(), "LOCALDNS_CONFIG_DIR": h.configDir}[k]
+				},
+				HostsFile: func(p string) hosts.File { return readOnly{hosts.NewDiskFile(p)} },
+			})
+			_ = pw.Close()
+		}()
+		var started struct {
+			Writable bool `json:"writable"`
+		}
+		if err := json.NewDecoder(pr).Decode(&started); err != nil {
+			t.Fatal(err)
+		}
+		go func() { _, _ = io.Copy(io.Discard, pr) }()
+		cancel()
+		<-done
+		if started.Writable || len(h.elevator.calls) != calls {
+			t.Fatalf("%v: expected a read-only UI without elevation", opts)
+		}
 	}
 }

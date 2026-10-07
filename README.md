@@ -290,11 +290,16 @@ The dashboard lists every entry (hostname, IP, port, URL, status) with **+ Add H
 **Delete** buttons. Deleting always asks for confirmation first. The UI is part of the
 binary (no Node.js or Python needed) and listens on `127.0.0.1` only.
 
-Options: `--port 8080`, `--open` (open your browser).
+`localdns ui` opens the dashboard in your browser automatically (`--no-open` to skip,
+`--port 8080` for another port). The installer also opens it right after installing when you
+install from your own terminal (set `LOCALDNS_NO_UI=1` to skip).
 
-To add or delete from the UI on macOS or Linux, start it with administrator rights:
-`sudo localdns ui`. Without them, the UI works read-only and tells you so. On Windows, run it
-from an administrator terminal.
+> **Why does it ask for my password?** Adding or deleting names edits `/etc/hosts`, which
+> only an administrator can change. On macOS and Linux, `localdns ui` therefore asks for your
+> password (sudo) when it starts. Only the UI server runs with sudo, the browser opens as
+> you, and everything stops when you press Ctrl+C. Prefer not to? `localdns ui --no-elevate`
+> starts it read-only (you can view, not change). On Windows, run it from a terminal opened
+> with **Run as administrator**.
 
 ---
 

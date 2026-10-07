@@ -3014,3 +3014,12 @@ html[lang="ar"] .motion-stage .m-label {
   color: var(--brand);
   font-weight: 700;
 }
+
+.sudo-note {
+  margin-top: 14px !important;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--brand) 25%, transparent);
+  font-size: 0.98rem !important;
+}

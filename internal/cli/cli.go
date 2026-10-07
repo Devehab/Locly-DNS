@@ -70,7 +70,7 @@ type Env struct {
 	Context context.Context
 	// RemoveBinary deletes the installed binary during uninstall.
 	RemoveBinary func(path string) error
-	// OpenBrowser opens a URL for `localdns ui --open`.
+	// OpenBrowser opens a URL in the user's browser (`localdns ui`).
 	OpenBrowser func(url string) error
 	// HostsFile opens the hosts file at path; nil means the file on disk.
 	// Tests use it to simulate a read-only hosts file.
@@ -114,6 +114,7 @@ type options struct {
 	force      bool
 	noElevate  bool
 	open       bool
+	noOpen     bool
 	keepBinary bool
 	port       int
 	hostsFile  string
@@ -131,6 +132,7 @@ type runCtx struct {
 	hostsPath, configDir          string
 	hostsOverride, configOverride bool
 	mgr                           *core.Manager
+	elevateNote                   string // shown instead of the default sudo notice
 }
 
 // Run executes the CLI with env and returns the exit code.
@@ -310,6 +312,8 @@ func (c *runCtx) registerFlags(fs *flag.FlagSet) {
 			fs.IntVar(&c.o.port, "port", 7357, "")
 		case flagOpen:
 			fs.BoolVar(&c.o.open, "open", false, "")
+		case flagNoOpen:
+			fs.BoolVar(&c.o.noOpen, "no-open", false, "")
 		case flagKeepBinary:
 			fs.BoolVar(&c.o.keepBinary, "keep-binary", false, "")
 		}
@@ -478,8 +482,12 @@ func (c *runCtx) tryElevate(err error, extraArgs ...string) (int, bool) {
 	}
 	args = append(args, "--no-elevate")
 	if c.env.Interactive {
-		c.errp.printf("LocalDNS needs administrator rights to update %s.\nAsking %s for permission…\n\n",
-			c.hostsPath, c.env.Elevator.Describe())
+		if c.elevateNote != "" {
+			c.errp.printf("%s", c.elevateNote)
+		} else {
+			c.errp.printf("LocalDNS needs administrator rights to update %s.\nAsking %s for permission…\n\n",
+				c.hostsPath, c.env.Elevator.Describe())
+		}
 	}
 	code, rerr := c.env.Elevator.Run(c.env.Executable, args, c.env.Interactive, c.env.Stdin, c.env.Stdout, c.env.Stderr)
 	if rerr != nil {
