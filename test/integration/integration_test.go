@@ -192,7 +192,8 @@ func TestInternetDomainsAreNeverIntercepted(t *testing.T) {
 }
 
 // LocalDNS must not contain a DNS server or any network listener other than
-// the loopback-only web UI. This audits the source code itself.
+// the loopback-only web UI and the optional loopback-only router. This audits
+// the source code itself.
 func TestOnlyLoopbackUIListens(t *testing.T) {
 	root := filepath.Join("..", "..")
 	listenFuncs := map[string]bool{
@@ -237,19 +238,23 @@ func TestOnlyLoopbackUIListens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"internal/ui/server.go: net.Listen"}
+	want := []string{"internal/router/router.go: net.Listen", "internal/ui/server.go: net.Listen"}
 	if strings.Join(found, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("unexpected network calls:\n%s\nwant only:\n%s", strings.Join(found, "\n"), strings.Join(want, "\n"))
 	}
 
-	// And that one listener is bound to the loopback interface.
-	src, err := os.ReadFile(filepath.Join(root, "internal", "ui", "server.go"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(src), `net.Listen("tcp", net.JoinHostPort(LoopbackAddr,`) ||
-		!strings.Contains(string(src), `LoopbackAddr = "127.0.0.1"`) {
-		t.Fatal("UI listener is not pinned to 127.0.0.1")
+	// And both listeners are bound to the loopback interface.
+	for _, l := range []struct{ file, call, constant string }{
+		{"internal/ui/server.go", `net.Listen("tcp", net.JoinHostPort(LoopbackAddr,`, `LoopbackAddr = "127.0.0.1"`},
+		{"internal/router/router.go", `net.Listen("tcp", net.JoinHostPort(ListenAddr,`, `const ListenAddr = "127.0.0.1"`},
+	} {
+		src, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(l.file)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(src), l.call) || !strings.Contains(string(src), l.constant) {
+			t.Fatalf("%s: listener is not pinned to 127.0.0.1", l.file)
+		}
 	}
 }
 

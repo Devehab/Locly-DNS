@@ -40,7 +40,23 @@ type Entry struct {
 	URL      string  `json:"url"`
 	Status   Status  `json:"status"`
 	Detail   string  `json:"detail,omitempty"`
+	// ShortURL is the port-free address (http://app.local) when the
+	// LocalDNS router is running and serves this name. Filled in by the
+	// CLI and web UI, which can check the router; empty otherwise.
+	ShortURL string `json:"short_url,omitempty"`
 }
+
+// Routable reports whether the port-free router can serve this entry: it
+// has a port and its name resolves to 127.0.0.1, where the router listens.
+func (e Entry) Routable() bool {
+	if e.Port == nil || e.Status == StatusMissing {
+		return false
+	}
+	ip, err := netip.ParseAddr(e.IP)
+	return err == nil && ip.Unmap() == routerAddr
+}
+
+var routerAddr = netip.MustParseAddr("127.0.0.1")
 
 // Action describes what a mutating call did.
 type Action string

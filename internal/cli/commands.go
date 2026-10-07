@@ -24,6 +24,7 @@ const (
 	flagPort
 	flagOpen
 	flagNoOpen
+	flagRouterPort
 	flagKeepBinary
 )
 
@@ -39,6 +40,7 @@ var flagDocs = map[int]flagDoc{
 	flagPort:       {"--port <port>", "Port for the web UI (default 7357)"},
 	flagOpen:       {"--open", "Open the browser even without a terminal (scripts)"},
 	flagNoOpen:     {"--no-open", "Don't open your browser automatically"},
+	flagRouterPort: {"--port <port>", "Port for `router run` (default 80, which is what makes URLs port-free)"},
 	flagKeepBinary: {"--keep-binary", "Remove entries and configuration but keep the localdns binary"},
 }
 
@@ -141,6 +143,22 @@ func init() {
 			run:      runUI,
 		},
 		{
+			name: "router", summary: "Port-free URLs (http://app.local)", listed: true,
+			usage: "localdns router [status|enable|disable|run]",
+			long: "The hosts file maps names to addresses but cannot store ports, so\n" +
+				"http://app.local would go to port 80. The LocalDNS router listens on\n" +
+				"127.0.0.1:80 (this machine only) and forwards each of your names to its\n" +
+				"port, so http://app.local opens 127.0.0.1:3000. It serves only names you\n" +
+				"added; other traffic, DNS and proxy settings are never touched.\n\n" +
+				"enable runs it in the background at login (macOS: your user, not root;\n" +
+				"Linux: an unprivileged systemd service), disable removes it, run keeps it\n" +
+				"in the foreground.",
+			args:     [][2]string{{"action", "status (default), enable, disable or run"}},
+			flags:    []int{flagRouterPort, flagNoElevate},
+			examples: []string{"localdns router enable", "localdns router", "localdns router disable", "localdns router run"},
+			maxArgs:  1, run: runRouter,
+		},
+		{
 			name: "uninstall", summary: "Remove LocalDNS", listed: true,
 			usage: "localdns uninstall",
 			long: "Remove LocalDNS-managed host entries, the LocalDNS configuration and the\n" +
@@ -216,6 +234,7 @@ func runAdd(c *runCtx) int {
 		}
 		return c.fail(err)
 	}
+	res.Entry = c.withShortURLs([]core.Entry{res.Entry})[0]
 	if c.o.json {
 		writeJSON(c.env.Stdout, res)
 		return ExitOK
@@ -228,17 +247,27 @@ func runAdd(c *runCtx) int {
 	default:
 		c.out.println(c.out.ok() + " Already added (nothing changed)")
 	}
-	printEntry(c.out, res.Entry)
+	c.printEntry(res.Entry)
 	return ExitOK
 }
 
-func printEntry(p *printer, e core.Entry) {
+func (c *runCtx) printEntry(e core.Entry) {
+	p := c.out
 	p.println()
 	p.println(p.bold(e.Hostname) + " → " + e.Address)
-	if e.Port != nil {
+	if e.Port == nil {
+		return
+	}
+	p.println()
+	p.println("URL:")
+	if e.ShortURL != "" {
+		p.println(e.ShortURL + p.dim("   (also "+e.URL+")"))
+		return
+	}
+	p.println(e.URL)
+	if st := c.env.Router.State(); e.Routable() && !st.Installed && st.Kind != "off" {
 		p.println()
-		p.println("URL:")
-		p.println(e.URL)
+		p.println(p.dim("Tip: to open " + "http://" + e.Hostname + " without the port, run: localdns router enable"))
 	}
 }
 
@@ -249,6 +278,7 @@ func runList(c *runCtx) int {
 	if err != nil {
 		return c.fail(err)
 	}
+	list = c.withShortURLs(list)
 	if c.o.json {
 		writeJSON(c.env.Stdout, map[string]any{"entries": list})
 		return ExitOK
@@ -261,9 +291,9 @@ func runList(c *runCtx) int {
 		c.out.println("  localdns add app.local 127.0.0.1:3000")
 		return ExitOK
 	}
-	rows := [][]string{{"HOSTNAME", "ADDRESS", "STATUS"}}
+	rows := [][]string{{"HOSTNAME", "ADDRESS", "STATUS", "OPEN"}}
 	for _, e := range list {
-		rows = append(rows, []string{e.Hostname, e.Address, statusSymbol(c.out, e.Status)})
+		rows = append(rows, []string{e.Hostname, e.Address, statusSymbol(c.out, e.Status), openURL(e)})
 	}
 	c.out.table(rows, "")
 	c.out.println()
@@ -276,6 +306,18 @@ func runList(c *runCtx) int {
 		}
 	}
 	return ExitOK
+}
+
+// openURL is the address to open in a browser: port-free when the router
+// serves the entry.
+func openURL(e core.Entry) string {
+	if e.ShortURL != "" {
+		return e.ShortURL
+	}
+	if e.Port != nil {
+		return e.URL
+	}
+	return ""
 }
 
 func statusSymbol(p *printer, s core.Status) string {
@@ -326,6 +368,7 @@ func runStatus(c *runCtx) int {
 	if err != nil {
 		return c.fail(err)
 	}
+	r.Entries = c.withShortURLs(r.Entries)
 	if c.o.json {
 		writeJSON(c.env.Stdout, r)
 		return ExitOK
@@ -353,6 +396,7 @@ func runStatus(c *runCtx) int {
 	if r.ConfigError != "" {
 		p.printf("  %-12s %s\n", "Config error", p.red(r.ConfigError))
 	}
+	p.printf("  %-12s %s\n", "Port-free", c.routerSummary())
 	p.println()
 	if len(r.Entries) > 0 {
 		rows := [][]string{{"HOSTNAME", "ADDRESS", "STATUS"}}
@@ -388,7 +432,7 @@ func runStatus(c *runCtx) int {
 func runDoctor(c *runCtx) int {
 	canElevate := c.env.Getenv(EnvNoElevate) == "" && c.env.Elevator.Available(c.env.Interactive)
 	m := c.newManager(canElevate)
-	report := m.Doctor(func() core.Check { return ui.AvailabilityCheck(c.o.port) })
+	report := m.Doctor(func() core.Check { return ui.AvailabilityCheck(c.o.port) }, c.routerCheck)
 	if c.o.json {
 		writeJSON(c.env.Stdout, report)
 	} else {
@@ -405,6 +449,10 @@ func runDoctor(c *runCtx) int {
 			case core.CheckFail:
 				sym = p.fail()
 				problems++
+			}
+			if ch.Status == core.CheckPass && ch.Message != "" {
+				p.println(sym + " " + ch.Name + p.dim(" — "+ch.Message))
+				continue
 			}
 			p.println(sym + " " + ch.Name)
 			if ch.Status != core.CheckPass {
@@ -482,7 +530,8 @@ func runUI(c *runCtx) int {
 			readOnlyHint = "Stop the UI and run `localdns ui` from a terminal opened with \"Run as administrator\"."
 		}
 	}
-	handler, err := ui.NewHandler(m, ui.Options{Port: portNum, Version: version.Version, ReadOnlyHint: readOnlyHint})
+	handler, err := ui.NewHandler(m, ui.Options{Port: portNum, Version: version.Version, ReadOnlyHint: readOnlyHint,
+		ShortURL: c.shortURLFunc()})
 	if err != nil {
 		_ = ln.Close()
 		return c.fail(err)
@@ -563,9 +612,13 @@ func runUninstall(c *runCtx) int {
 		binary = c.env.Executable
 	}
 
+	routerInstalled := c.env.Router.State().Installed
 	question := "Uninstall LocalDNS?\n\nThis will:\n\n" +
 		"• Remove LocalDNS-managed host entries\n" +
 		"• Remove LocalDNS configuration\n"
+	if routerInstalled {
+		question += "• Remove the LocalDNS router (port-free URLs)\n"
+	}
 	if binary != "" {
 		question += "• Remove the LocalDNS application\n"
 	}
@@ -575,6 +628,24 @@ func runUninstall(c *runCtx) int {
 	}
 
 	needElevation := planErr
+	routerRemoved := false
+	if routerInstalled {
+		// Stop the router first: on Windows a running localdns.exe can't be
+		// deleted.
+		err := c.env.Router.Disable()
+		switch {
+		case err == nil:
+			routerRemoved = true
+		case fsutil.IsPermission(err):
+			if needElevation == nil {
+				needElevation = &core.Error{Code: core.CodePermission,
+					Message: "LocalDNS needs administrator rights to remove the router service",
+					Hint:    c.permissionHint()}
+			}
+		default:
+			return c.fail(&core.Error{Code: core.CodeInternal, Message: "could not remove the router: " + err.Error()})
+		}
+	}
 	if needElevation == nil && binary != "" {
 		if err := fsutil.CheckWritable(filepath.Dir(binary)); fsutil.IsPermission(err) {
 			needElevation = &core.Error{Code: core.CodePermission,
@@ -606,6 +677,7 @@ func runUninstall(c *runCtx) int {
 			"config_removed":  res.ConfigRemoved,
 			"binary_removed":  binaryRemoved,
 			"binary_path":     binary,
+			"router_removed":  routerRemoved,
 		}
 		if binErr != nil {
 			out["binary_error"] = binErr.Error()
@@ -615,6 +687,9 @@ func runUninstall(c *runCtx) int {
 		p := c.out
 		p.println(p.ok() + " LocalDNS entries removed" + p.dim(" ("+plural(res.EntriesRemoved, "entry", "entries")+")"))
 		p.println(p.ok() + " Configuration removed")
+		if routerRemoved {
+			p.println(p.ok() + " Router removed")
+		}
 		switch {
 		case binErr != nil:
 			p.println(p.fail() + " Could not remove " + binary + ": " + binErr.Error())

@@ -217,7 +217,7 @@ func TestJSONOutput(t *testing.T) {
 	}
 	r = h.run([]string{"doctor", "--json", "--port", "0"})
 	v = r.json(t)
-	if r.code != 0 || v["ok"] != true || len(v["checks"].([]any)) != 7 {
+	if r.code != 0 || v["ok"] != true || len(v["checks"].([]any)) != 8 {
 		t.Fatalf("doctor --json = %v", v)
 	}
 	r = h.run([]string{"remove", "ha.local", "--yes", "--json"})

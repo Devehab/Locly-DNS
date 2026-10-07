@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Locly — Friendly local hostnames for developers and AI agents</title>
-  <meta name="description" content="Locly (localdns) maps app.local to 127.0.0.1:3000 with one command by managing its own section of your hosts file. Not a DNS server. No daemon. A CLI for developers and AI agents, plus a simple web UI.">
+  <meta name="description" content="Locly (localdns) maps app.local to 127.0.0.1:3000 with one command by managing its own section of your hosts file. Not a DNS server. Optional port-free URLs (http://app.local). A CLI for developers and AI agents, plus a simple web UI.">
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0a0e17" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
@@ -108,8 +108,8 @@
             <span class="ar">أسماء سهلة <span class="grad">لخدماتك المحلية</span></span>
           </h1>
           <p class="lead">
-            <span class="en">Turn <code dir="ltr">127.0.0.1:3000</code> into <code dir="ltr">app.local:3000</code> with a single command. Locly writes only its own section of your hosts file. No DNS server, no background service, nothing else on your system changes.</span>
-            <span class="ar">حوّل <code dir="ltr">127.0.0.1:3000</code> إلى <code dir="ltr">app.local:3000</code> بأمر واحد. يكتب Locly في قسمه الخاص فقط من ملف hosts، بلا خادم DNS، وبلا خدمة تعمل في الخلفية، ولا يتغيّر أي شيء آخر في نظامك.</span>
+            <span class="en">Turn <code dir="ltr">127.0.0.1:3000</code> into <code dir="ltr">http://app.local</code> with a single command, no port to type. Locly writes only its own section of your hosts file, and a small router on 127.0.0.1 drops the port. No DNS server, nothing else on your system changes.</span>
+            <span class="ar">حوّل <code dir="ltr">127.0.0.1:3000</code> إلى <code dir="ltr">http://app.local</code> بأمر واحد، بدون كتابة رقم المنفذ. يكتب Locly في قسمه الخاص فقط من ملف hosts، وموجّه صغير على 127.0.0.1 يستغني عن المنفذ. بلا خادم DNS، ولا يتغيّر أي شيء آخر في نظامك.</span>
           </p>
           <p class="sublead">
             <span class="en">Built for developers <em>and</em> AI agents: a scriptable CLI with JSON output, plus a simple web UI.</span>
@@ -156,16 +156,16 @@
 <b>app.local</b> → 127.0.0.1:3000
 
 URL:
-<span class="t-link">http://app.local:3000</span>
+<span class="t-link">http://app.local</span>   <span class="t-dim">(also http://app.local:3000)</span>
 
 <span class="t-prompt">$</span> localdns list
 <b>LocalDNS</b>
 
-<b>HOSTNAME     ADDRESS              STATUS</b>
-<span class="t-dim">────────────────────────────────────────</span>
-app.local    127.0.0.1:3000       <span class="t-ok">✓</span>
-api.local    127.0.0.1:3002       <span class="t-ok">✓</span>
-ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
+<b>HOSTNAME     ADDRESS              STATUS    OPEN</b>
+<span class="t-dim">───────────────────────────────────────────────────────────</span>
+app.local    127.0.0.1:3000       <span class="t-ok">✓</span>         http://app.local
+api.local    127.0.0.1:3002       <span class="t-ok">✓</span>         http://api.local
+ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>         http://ha.local:8123
 
 3 entries</code></pre>
           </div>
@@ -177,12 +177,12 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
           <div class="map-row">
             <code class="from" dir="ltr">127.0.0.1:3000</code>
             <svg class="arrow" width="22" height="22" aria-hidden="true"><use href="#i-arrow"/></svg>
-            <code class="to" dir="ltr">app.local:3000</code>
+            <code class="to" dir="ltr">app.local</code>
           </div>
           <div class="map-row">
             <code class="from" dir="ltr">127.0.0.1:3002</code>
             <svg class="arrow" width="22" height="22" aria-hidden="true"><use href="#i-arrow"/></svg>
-            <code class="to" dir="ltr">api.local:3002</code>
+            <code class="to" dir="ltr">api.local</code>
           </div>
           <div class="map-row">
             <code class="from" dir="ltr">192.168.1.60:8123</code>
@@ -204,8 +204,8 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
 
         <figure class="motion">
           <p class="sr-only">
-            <span class="en">Animation: scattered numbers like 127.0.0.1:3000 and 192.168.1.60:8123 turn into names you choose, such as app.local and ha.local. Registering a domain, linking DNS records and waiting for propagation are all crossed off as not needed. One command, localdns add app.local 127.0.0.1:3000, makes http://app.local:3000 open in the browser. Names are then added from the terminal and removed from the web UI, and both stay in sync.</span>
-            <span class="ar">رسوم متحركة: أرقام متناثرة مثل 127.0.0.1:3000 و192.168.1.60:8123 تتحول إلى أسماء تختارها مثل app.local وha.local. حجز الدومين وربط سجلات DNS وانتظار الانتشار كلها تُشطب لأنها غير مطلوبة. أمر واحد، localdns add app.local 127.0.0.1:3000، يجعل http://app.local:3000 يفتح في المتصفح. ثم تُضاف الأسماء من الطرفية وتُحذف من واجهة الويب، ويبقى الاثنان متزامنين.</span>
+            <span class="en">Animation: scattered numbers like 127.0.0.1:3000 and 192.168.1.60:8123 turn into names you choose, such as app.local and ha.local. Registering a domain, linking DNS records and waiting for propagation are all crossed off as not needed. One command, localdns add app.local 127.0.0.1:3000, makes http://app.local open in the browser, no port needed. Names are then added from the terminal and removed from the web UI, and both stay in sync.</span>
+            <span class="ar">رسوم متحركة: أرقام متناثرة مثل 127.0.0.1:3000 و192.168.1.60:8123 تتحول إلى أسماء تختارها مثل app.local وha.local. حجز الدومين وربط سجلات DNS وانتظار الانتشار كلها تُشطب لأنها غير مطلوبة. أمر واحد، localdns add app.local 127.0.0.1:3000، يجعل http://app.local يفتح في المتصفح بدون رقم منفذ. ثم تُضاف الأسماء من الطرفية وتُحذف من واجهة الويب، ويبقى الاثنان متزامنين.</span>
           </p>
 
           <div class="motion-stage" id="motion-stage" aria-hidden="true">
@@ -287,11 +287,11 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
                     <div class="m-cmd"><span class="m-prompt">$</span><span data-type="1.0/1.5" data-text="localdns add app.local 127.0.0.1:3000"></span></div>
                     <div class="m-line m-ok" data-v="p@2.65/0.35">✓ Added successfully</div>
                     <div class="m-line" data-v="p@2.85/0.35"><b>app.local</b> → 127.0.0.1:3000</div>
-                    <div class="m-line" data-v="p@3.05/0.35">URL: <u>http://app.local:3000</u></div>
+                    <div class="m-line" data-v="p@3.05/0.35">URL: <u>http://app.local</u></div>
                   </div>
                 </div>
                 <div class="m-browser" dir="ltr" data-v="p@3.3/0.7">
-                  <div class="m-bar m-bar-light"><i></i><i></i><i></i><span class="m-url"><span class="m-url-scheme">http://</span><span data-type="3.85/0.8" data-text="app.local:3000"></span></span></div>
+                  <div class="m-bar m-bar-light"><i></i><i></i><i></i><span class="m-url"><span class="m-url-scheme">http://</span><span data-type="3.85/0.6" data-text="app.local"></span></span></div>
                   <div class="m-loadbar" data-v="l@4.7/0.5:io o@5.25/0.3"></div>
                   <div class="m-page" data-v="p@5.05/0.5">
                     <div class="m-app-nav"><b>My App</b><span class="m-live">● running on app.local</span></div>
@@ -425,8 +425,8 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
           <li class="step">
             <span class="step-num">3</span>
             <h3><span class="en">Open it</span><span class="ar">افتحه</span></h3>
-            <p><span class="en">Your browser now reaches the service by name. Every other name, google.com included, keeps using your normal DNS.</span><span class="ar">يصل متصفحك الآن إلى الخدمة باسمها. وكل الأسماء الأخرى، ومنها google.com، تبقى على DNS المعتاد.</span></p>
-            <div class="cmd small" dir="ltr"><code>http://app.local:3000</code></div>
+            <p><span class="en">Your browser now reaches the service by name, without the port: Locly's router on 127.0.0.1:80 forwards <code dir="ltr">app.local</code> to port 3000. Every other name, google.com included, keeps using your normal DNS.</span><span class="ar">يصل متصفحك الآن إلى الخدمة باسمها وبدون رقم المنفذ: موجّه Locly على 127.0.0.1:80 يحوّل <code dir="ltr">app.local</code> إلى المنفذ 3000. وكل الأسماء الأخرى، ومنها google.com، تبقى على DNS المعتاد.</span></p>
+            <div class="cmd small" dir="ltr"><code>http://app.local</code></div>
           </li>
         </ol>
 
@@ -527,12 +527,12 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>
           <article class="example">
             <h3><span class="en">A local web app</span><span class="ar">تطبيق ويب محلي</span></h3>
             <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add app.local 127.0.0.1:3000</code><button type="button" class="copy" data-copy="localdns add app.local 127.0.0.1:3000"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
-            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://app.local:3000</code></p>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://app.local</code></p>
           </article>
           <article class="example">
             <h3><span class="en">A backend API</span><span class="ar">واجهة API خلفية</span></h3>
             <div class="cmd" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns add api.local 127.0.0.1:3002</code><button type="button" class="copy" data-copy="localdns add api.local 127.0.0.1:3002"><svg width="16" height="16" aria-hidden="true"><use href="#i-copy"/></svg><span class="copy-label"><span class="en">Copy</span><span class="ar">نسخ</span></span></button></div>
-            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://api.local:3002</code></p>
+            <p class="result"><svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg><code dir="ltr">http://api.local</code></p>
           </article>
           <article class="example">
             <h3><span class="en">A device on your network</span><span class="ar">جهاز على شبكتك</span></h3>
@@ -647,7 +647,8 @@ Remove app.local → 127.0.0.1:3000?
               <li><span class="en">Downloads from GitHub Releases over HTTPS</span><span class="ar">ينزّل البرنامج من GitHub Releases عبر HTTPS</span></li>
               <li><span class="en">Verifies the SHA-256 checksum</span><span class="ar">يتحقق من بصمة SHA-256</span></li>
               <li><span class="en">Copies it to <code dir="ltr">/usr/local/bin</code> (or <code dir="ltr">~/.local/bin</code>). On Windows: <code dir="ltr">%LOCALAPPDATA%\Programs\LocalDNS</code>, added to your PATH</span><span class="ar">ينسخه إلى <code dir="ltr">/usr/local/bin</code> (أو <code dir="ltr">~/.local/bin</code>). وعلى Windows إلى <code dir="ltr">%LOCALAPPDATA%\Programs\LocalDNS</code> ويضيفه إلى PATH</span></li>
-              <li><span class="en">Changes nothing else: no services, no shell profile edits, no DNS settings</span><span class="ar">لا يغيّر أي شيء آخر: لا خدمات، ولا تعديل لملفات الطرفية، ولا لإعدادات DNS</span></li>
+              <li><span class="en">Turns on port-free URLs (<code dir="ltr">http://app.local</code>): a small router on 127.0.0.1:80 that runs as you. <code dir="ltr">localdns router disable</code> turns it off</span><span class="ar">يفعّل الروابط بدون منفذ (<code dir="ltr">http://app.local</code>): موجّه صغير على 127.0.0.1:80 يعمل بصلاحيات مستخدمك. والأمر <code dir="ltr">localdns router disable</code> يوقفه</span></li>
+              <li><span class="en">Changes nothing else: no shell profile edits, no DNS settings</span><span class="ar">لا يغيّر أي شيء آخر: لا تعديل لملفات الطرفية، ولا لإعدادات DNS</span></li>
             </ul>
 
             <h3><span class="en">Other options</span><span class="ar">خيارات أخرى</span></h3>
@@ -688,6 +689,7 @@ Remove app.local → 127.0.0.1:3000?
               <tr><td dir="ltr"><a href="#cmd-status"><code>localdns status</code></a></td><td><span class="en">Check files, write access and entries</span><span class="ar">فحص الملفات وصلاحية الكتابة والمدخلات</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-doctor"><code>localdns doctor</code></a></td><td><span class="en">Diagnose problems and suggest fixes</span><span class="ar">تشخيص المشكلات واقتراح الحلول</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-ui"><code>localdns ui</code></a></td><td><span class="en">Open the web interface</span><span class="ar">تشغيل واجهة الويب</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-router"><code>localdns router</code></a></td><td><span class="en">Port-free URLs: <code dir="ltr">http://app.local</code></span><span class="ar">روابط بدون منفذ: <code dir="ltr">http://app.local</code></span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-uninstall"><code>localdns uninstall</code></a></td><td><span class="en">Remove LocalDNS completely</span><span class="ar">إزالة LocalDNS بالكامل</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-info"><code>localdns info</code></a></td><td><span class="en">Show all commands, flags and exit codes</span><span class="ar">عرض كل الأوامر والخيارات ورموز الخروج</span></td></tr>
             </tbody>
@@ -741,7 +743,7 @@ localdns status --json</code></pre>
 
           <article class="cmd-card" id="cmd-doctor">
             <header><h3 dir="ltr">doctor</h3><code class="usage" dir="ltr">localdns doctor</code></header>
-            <p><span class="en">Runs seven checks (OS, hosts file found, readable and writable, Locly section, config, UI port) and prints a fix for anything wrong.</span><span class="ar">يُجري سبعة فحوصات (النظام، ووجود ملف hosts وإمكانية قراءته والكتابة فيه، وقسم Locly، والإعدادات، ومنفذ الواجهة) ويطبع طريقة الإصلاح لأي مشكلة.</span></p>
+            <p><span class="en">Runs eight checks (OS, hosts file found, readable and writable, Locly section, config, UI port, port-free router) and prints a fix for anything wrong.</span><span class="ar">يُجري ثمانية فحوصات (النظام، ووجود ملف hosts وإمكانية قراءته والكتابة فيه، وقسم Locly، والإعدادات، ومنفذ الواجهة، وموجّه الروابط بدون منفذ) ويطبع طريقة الإصلاح لأي مشكلة.</span></p>
 <pre class="code" dir="ltr"><code><span class="t-ok">✓</span> Operating system supported
 <span class="t-ok">✓</span> Hosts file found
 <span class="t-ok">✓</span> Hosts file readable
@@ -749,6 +751,7 @@ localdns status --json</code></pre>
 <span class="t-ok">✓</span> LocalDNS section valid
 <span class="t-ok">✓</span> Configuration valid
 <span class="t-ok">✓</span> Local UI available
+<span class="t-ok">✓</span> Port-free URLs (router)
 
 Everything looks good.</code></pre>
           </article>
@@ -766,9 +769,22 @@ localdns ui --port 8080
 localdns ui --no-elevate</code></pre>
           </article>
 
+          <article class="cmd-card" id="cmd-router">
+            <header><h3 dir="ltr">router</h3><code class="usage" dir="ltr">localdns router [enable|disable]</code></header>
+            <p><span class="en">The hosts file can't store ports, so <code dir="ltr">http://app.local</code> would go to port 80. The router listens there, on 127.0.0.1 only, and forwards each of your names to its port. It runs as you (not root), starts at login, and serves only names you added. The installer turns it on.</span><span class="ar">ملف hosts لا يحفظ المنافذ، لذا فإن <code dir="ltr">http://app.local</code> يذهب إلى المنفذ 80. الموجّه يستمع هناك، على 127.0.0.1 فقط، ويحوّل كل اسم من أسمائك إلى منفذه. يعمل بصلاحيات مستخدمك (وليس root)، ويبدأ عند تسجيل الدخول، ولا يخدم إلا الأسماء التي أضفتها. المثبِّت يفعّله تلقائيًا.</span></p>
+            <dl class="flags">
+              <div><dt dir="ltr">enable</dt><dd><span class="en">Start it now and at every login</span><span class="ar">تشغيله الآن وعند كل تسجيل دخول</span></dd></div>
+              <div><dt dir="ltr">disable</dt><dd><span class="en">Stop and remove it</span><span class="ar">إيقافه وإزالته</span></dd></div>
+              <div><dt dir="ltr">run</dt><dd><span class="en">Run it in the foreground</span><span class="ar">تشغيله في الطرفية مباشرة</span></dd></div>
+            </dl>
+<pre class="code" dir="ltr"><code>localdns router enable
+localdns router
+localdns router disable</code></pre>
+          </article>
+
           <article class="cmd-card" id="cmd-uninstall">
             <header><h3 dir="ltr">uninstall</h3><code class="usage" dir="ltr">localdns uninstall</code></header>
-            <p><span class="en">Removes Locly's hosts entries, its configuration and the binary. Your other hosts entries are not modified.</span><span class="ar">يحذف مدخلات Locly من ملف hosts وإعداداته والبرنامج نفسه. مدخلاتك الأخرى في ملف hosts لا تتغيّر.</span></p>
+            <p><span class="en">Removes Locly's hosts entries, its configuration, the router and the binary. Your other hosts entries are not modified.</span><span class="ar">يحذف مدخلات Locly من ملف hosts وإعداداته والموجّه والبرنامج نفسه. مدخلاتك الأخرى في ملف hosts لا تتغيّر.</span></p>
             <dl class="flags">
               <div><dt dir="ltr">-y, --yes</dt><dd><span class="en">Don't ask for confirmation</span><span class="ar">بدون سؤال تأكيد</span></dd></div>
               <div><dt dir="ltr">--keep-binary</dt><dd><span class="en">Keep the <code dir="ltr">localdns</code> program</span><span class="ar">الإبقاء على برنامج <code dir="ltr">localdns</code></span></dd></div>
@@ -904,7 +920,7 @@ localdns add --help</code></pre>
         <ul class="never-grid">
           <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No DNS server</span><span class="ar">ليس خادم DNS</span></h3><p><span class="en">It never answers DNS queries. Your OS resolves names, as always.</span><span class="ar">لا يجيب على استعلامات DNS أبدًا، فنظام التشغيل هو من يترجم الأسماء كالمعتاد.</span></p></li>
           <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No root daemon</span><span class="ar">لا خدمة بصلاحيات root</span></h3><p><span class="en">Only the one command that edits the hosts file is elevated, and then it exits.</span><span class="ar">الأمر الذي يعدّل ملف hosts وحده يعمل بصلاحيات مرتفعة، ثم ينتهي.</span></p></li>
-          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No open ports</span><span class="ar">لا منافذ مفتوحة</span></h3><p><span class="en">The UI binds to 127.0.0.1 only while it runs, with DNS-rebinding and CSRF protection.</span><span class="ar">الواجهة مربوطة بـ 127.0.0.1 فقط أثناء تشغيلها، مع حماية من DNS rebinding وCSRF.</span></p></li>
+          <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">Nothing open to your network</span><span class="ar">لا شيء مكشوف لشبكتك</span></h3><p><span class="en">The UI and the optional port-free router bind to 127.0.0.1 only. The UI has DNS-rebinding and CSRF protection; the router serves only names you added.</span><span class="ar">الواجهة والموجّه الاختياري مربوطان بـ 127.0.0.1 فقط. الواجهة محمية من DNS rebinding وCSRF، والموجّه لا يخدم إلا الأسماء التي أضفتها.</span></p></li>
           <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No telemetry</span><span class="ar">بلا تتبّع</span></h3><p><span class="en">No analytics, no outbound requests. Your data never leaves your machine.</span><span class="ar">لا تحليلات ولا طلبات خارجية. بياناتك لا تغادر جهازك أبدًا.</span></p></li>
           <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No network changes</span><span class="ar">لا تغييرات على الشبكة</span></h3><p><span class="en">No router, DNS, VPN, proxy or firewall changes. No traffic interception.</span><span class="ar">لا تعديل على الراوتر أو DNS أو VPN أو البروكسي أو الجدار الناري، ولا اعتراض لحركة المرور.</span></p></li>
           <li><span class="never-icon" aria-hidden="true"><svg width="16" height="16"><use href="#i-x"/></svg></span><h3><span class="en">No edits outside its block</span><span class="ar">لا تعديل خارج قسمه</span></h3><p><span class="en">Lines outside <code dir="ltr"># BEGIN/END LOCALDNS</code> are preserved byte for byte.</span><span class="ar">الأسطر خارج <code dir="ltr"># BEGIN/END LOCALDNS</code> تبقى كما هي حرفيًا.</span></p></li>
@@ -916,7 +932,7 @@ localdns add --help</code></pre>
           <svg width="28" height="28" aria-hidden="true"><use href="#i-shield"/></svg>
           <div>
             <h3><span class="en">Enforced by tests, not promises</span><span class="ar">مضمون بالاختبارات، لا بالوعود</span></h3>
-            <p><span class="en">An architecture test fails if the core ever imports networking or process-execution packages. Another audits the source code to make sure the loopback UI is the only listener. CI proves that existing hosts entries survive every operation on macOS, Linux and Windows, without ever touching the runner's real hosts file.</span><span class="ar">يفشل اختبار معماري إذا استورد قلب البرنامج أي مكتبة شبكات أو تشغيل عمليات. واختبار آخر يفحص الشيفرة للتأكد من أن واجهة localhost هي المستمع الوحيد. ويثبت CI أن مدخلات hosts الموجودة تبقى سليمة بعد كل عملية على macOS وLinux وWindows، دون أن يلمس ملف hosts الحقيقي لجهاز الاختبار.</span></p>
+            <p><span class="en">An architecture test fails if the core ever imports networking or process-execution packages. Another audits the source code to make sure the only listeners are the UI and the router, both on 127.0.0.1. CI proves that existing hosts entries survive every operation on macOS, Linux and Windows, without ever touching the runner's real hosts file.</span><span class="ar">يفشل اختبار معماري إذا استورد قلب البرنامج أي مكتبة شبكات أو تشغيل عمليات. واختبار آخر يفحص الشيفرة للتأكد من أن المستمعَين الوحيدَين هما الواجهة والموجّه، وكلاهما على 127.0.0.1. ويثبت CI أن مدخلات hosts الموجودة تبقى سليمة بعد كل عملية على macOS وLinux وWindows، دون أن يلمس ملف hosts الحقيقي لجهاز الاختبار.</span></p>
             <p class="this-page"><span class="en">This page too: no cookies, no trackers, no third-party scripts or fonts.</span><span class="ar">وهذه الصفحة أيضًا: بلا ملفات تعريف ارتباط، وبلا متتبّعات، وبلا سكربتات أو خطوط من أطراف خارجية.</span></p>
           </div>
         </div>
@@ -942,6 +958,10 @@ localdns add --help</code></pre>
           <details>
             <summary><span class="en">Do I need administrator rights?</span><span class="ar">هل أحتاج صلاحيات المسؤول؟</span></summary>
             <p><span class="en">Only to change the hosts file. On macOS and Linux, <code dir="ltr">localdns</code> asks for <code dir="ltr">sudo</code> for just that command. On Windows, use a terminal opened with “Run as administrator”. Reading commands never need it.</span><span class="ar">فقط لتعديل ملف hosts. على macOS وLinux يطلب <code dir="ltr">localdns</code> صلاحية <code dir="ltr">sudo</code> لذلك الأمر وحده. وعلى Windows استخدم طرفية مفتوحة بخيار «تشغيل كمسؤول». أوامر القراءة لا تحتاجها أبدًا.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">Do I have to type the port?</span><span class="ar">هل يجب أن أكتب رقم المنفذ؟</span></summary>
+            <p><span class="en">No. The installer turns on Locly's router, so <code dir="ltr">http://app.local</code> opens <code dir="ltr">127.0.0.1:3000</code>. It listens on 127.0.0.1:80 only, runs as you, and forwards only names you added that point to 127.0.0.1. If port 80 is taken by another program, use <code dir="ltr">http://app.local:3000</code> or run <code dir="ltr">localdns router</code> to see why. Names on other devices (<code dir="ltr">ha.local:8123</code>) keep their port.</span><span class="ar">لا. المثبِّت يفعّل موجّه Locly، فيفتح <code dir="ltr">http://app.local</code> العنوان <code dir="ltr">127.0.0.1:3000</code>. يستمع على 127.0.0.1:80 فقط، ويعمل بصلاحيات مستخدمك، ولا يحوّل إلا الأسماء التي أضفتها وتشير إلى 127.0.0.1. إذا كان برنامج آخر يستخدم المنفذ 80 فاستخدم <code dir="ltr">http://app.local:3000</code> أو شغّل <code dir="ltr">localdns router</code> لمعرفة السبب. أما أسماء الأجهزة الأخرى (<code dir="ltr">ha.local:8123</code>) فتبقى بمنفذها.</span></p>
           </details>
           <details>
             <summary><span class="en">Where is the port stored?</span><span class="ar">أين يُحفظ رقم المنفذ؟</span></summary>

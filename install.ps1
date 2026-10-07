@@ -4,14 +4,20 @@
 #
 # Downloads localdns.exe for your CPU from GitHub Releases, verifies its
 # SHA-256 checksum, copies it to %LOCALAPPDATA%\Programs\LocalDNS and adds that
-# folder to your user PATH. Nothing else is changed: no services, no DNS
-# settings, no administrator rights needed to install.
+# folder to your user PATH. No DNS settings, no administrator rights needed to
+# install.
+#
+# It also turns on port-free URLs (`localdns router enable`): a small router
+# listening on 127.0.0.1:80 only, started at login for your user, so
+# http://app.local opens your app without typing :3000. Turn it off any time
+# with `localdns router disable`.
 #
 # Environment variables:
 #   LOCALDNS_VERSION      version tag to install, e.g. v0.1.0 (default: latest)
 #   LOCALDNS_INSTALL_DIR  install directory
 #   LOCALDNS_REPO         GitHub repository (default: Devehab/Locly-DNS)
 #   LOCALDNS_BASE_URL     download from this URL instead of GitHub Releases
+#   LOCALDNS_NO_ROUTER    set to 1 to skip turning on port-free URLs
 
 & {
     $ErrorActionPreference = 'Stop'
@@ -85,6 +91,13 @@
         Write-Host ''
         Write-Host 'Adding or removing names edits the hosts file, so run localdns from a terminal'
         Write-Host 'opened with "Run as administrator" (reading works in any terminal).'
+
+        if (-not $env:CI -and -not $env:LOCALDNS_NO_ROUTER -and [Environment]::UserInteractive) {
+            Write-Host ''
+            Write-Host 'Turning on port-free URLs (http://app.local instead of http://app.local:3000)...'
+            & $exe router enable
+            if ($LASTEXITCODE -ne 0) { Write-Host 'Skipped. You can turn them on later with: localdns router enable' }
+        }
     } finally {
         Remove-Item -Recurse -Force -Path $tmp -ErrorAction SilentlyContinue
     }

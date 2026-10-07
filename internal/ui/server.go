@@ -54,6 +54,9 @@ type Options struct {
 	ReadOnlyHint string
 	// Token overrides the random API token (tests only).
 	Token string
+	// ShortURL returns an entry's port-free URL (http://app.local) when the
+	// LocalDNS router serves it, or "". Nil means never.
+	ShortURL func(core.Entry) string
 }
 
 type asset struct {
@@ -220,6 +223,11 @@ func (s *server) listEntries(*http.Request) (int, any) {
 	list, err := s.m.List()
 	if err != nil {
 		return s.errorResponse(err)
+	}
+	if s.opts.ShortURL != nil {
+		for i := range list {
+			list[i].ShortURL = s.opts.ShortURL(list[i])
+		}
 	}
 	return http.StatusOK, map[string]any{"entries": list}
 }

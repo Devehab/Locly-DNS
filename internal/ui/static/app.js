@@ -82,12 +82,19 @@
       tr.appendChild(cell(e.port === null ? "—" : String(e.port), "mono"));
 
       var urlTd = cell(null, "mono");
-      var a = document.createElement("a");
-      a.href = e.url;
-      a.textContent = e.url;
-      a.target = "_blank";
-      a.rel = "noopener noreferrer";
-      urlTd.appendChild(a);
+      // Prefer the port-free address when the LocalDNS router serves it.
+      var open = e.short_url || e.url;
+      if (open) {
+        var a = document.createElement("a");
+        a.href = open;
+        a.textContent = open;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        if (e.short_url) a.title = "Same as " + e.url;
+        urlTd.appendChild(a);
+      } else {
+        urlTd.textContent = "—";
+      }
       tr.appendChild(urlTd);
 
       var statusTd = cell(null);

@@ -75,6 +75,7 @@ func (s *sandbox) run(args ...string) out {
 		"LOCALDNS_HOSTS_FILE="+s.hosts.Path(),
 		"LOCALDNS_CONFIG_DIR="+s.configDir,
 		"LOCALDNS_NO_ELEVATE=1",
+		"LOCALDNS_ROUTER_SERVICE=off",
 		"NO_COLOR=1",
 	)
 	cmd.Stdin = strings.NewReader("")
@@ -181,7 +182,7 @@ func TestDoctor(t *testing.T) {
 		} `json:"checks"`
 	}
 	s.run("doctor", "--json", "--port", "0").json(t, &report)
-	if !report.OK || len(report.Checks) != 7 {
+	if !report.OK || len(report.Checks) != 8 {
 		t.Fatalf("doctor --json: %+v", report)
 	}
 }
@@ -251,7 +252,7 @@ func TestUIStartsOnLoopback(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	cmd := exec.CommandContext(ctx, s.bin, "ui", "--port", "0", "--json")
-	cmd.Env = append(os.Environ(), "LOCALDNS_HOSTS_FILE="+s.hosts.Path(), "LOCALDNS_CONFIG_DIR="+s.configDir)
+	cmd.Env = append(os.Environ(), "LOCALDNS_HOSTS_FILE="+s.hosts.Path(), "LOCALDNS_CONFIG_DIR="+s.configDir, "LOCALDNS_ROUTER_SERVICE=off")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		t.Fatal(err)

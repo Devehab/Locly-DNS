@@ -5,8 +5,13 @@
 #
 # What it does: downloads the localdns binary for your platform from GitHub
 # Releases, verifies its SHA-256 checksum, and copies it to /usr/local/bin
-# (using sudo if needed) or ~/.local/bin. Nothing else on your system is
-# changed: no services, no shell profile edits, no DNS settings.
+# (using sudo if needed) or ~/.local/bin. No shell profile edits, no DNS
+# settings.
+#
+# When you install from your own terminal it also turns on port-free URLs
+# (`localdns router enable`): a small router listening on 127.0.0.1:80 only,
+# so http://app.local opens your app without typing :3000. On macOS it runs as
+# your user (no root). Turn it off any time with `localdns router disable`.
 #
 # Environment variables:
 #   LOCALDNS_VERSION      version tag to install, e.g. v0.1.0 (default: latest)
@@ -14,6 +19,7 @@
 #   LOCALDNS_REPO         GitHub repository (default: Devehab/Locly-DNS)
 #   LOCALDNS_BASE_URL     download from this URL instead of GitHub Releases
 #   LOCALDNS_NO_UI        set to 1 to skip opening the dashboard after installing
+#   LOCALDNS_NO_ROUTER    set to 1 to skip turning on port-free URLs
 set -eu
 
 REPO="${LOCALDNS_REPO:-Devehab/Locly-DNS}"
@@ -152,17 +158,26 @@ main() {
 	say "  localdns ui            # dashboard at http://127.0.0.1:7357"
 	say ""
 	say "Adding or removing names edits /etc/hosts, so LocalDNS asks for your"
-	say "password (sudo) for that one action. Nothing keeps running in the background."
+	say "password (sudo) for that one action."
 
-	# A person installing from their own terminal gets the dashboard right
-	# away. Scripts, CI and SSH sessions just get the address above.
-	if [ -z "${LOCALDNS_NO_UI:-}" ] && [ -t 1 ] && [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}" ] && (: </dev/tty) 2>/dev/null; then
-		say ""
-		say "Opening the dashboard (http://127.0.0.1:7357)..."
-		say ""
+	# A person installing from their own terminal gets port-free URLs and the
+	# dashboard right away. Scripts, CI and SSH sessions just get the
+	# instructions above.
+	if [ -t 1 ] && [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}" ] && (: </dev/tty) 2>/dev/null; then
 		rm -rf "$tmp"
 		trap - EXIT INT TERM
-		"$INSTALL_DIR/localdns" ui </dev/tty || true
+		if [ -z "${LOCALDNS_NO_ROUTER:-}" ]; then
+			say ""
+			say "Turning on port-free URLs (http://app.local instead of http://app.local:3000)..."
+			"$INSTALL_DIR/localdns" router enable </dev/tty ||
+				say "Skipped. You can turn them on later with: localdns router enable"
+		fi
+		if [ -z "${LOCALDNS_NO_UI:-}" ]; then
+			say ""
+			say "Opening the dashboard (http://127.0.0.1:7357)..."
+			say ""
+			"$INSTALL_DIR/localdns" ui </dev/tty || true
+		fi
 	fi
 }
 

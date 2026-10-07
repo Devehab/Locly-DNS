@@ -72,6 +72,8 @@ type Env struct {
 	RemoveBinary func(path string) error
 	// OpenBrowser opens a URL in the user's browser (`localdns ui`).
 	OpenBrowser func(url string) error
+	// Router manages the background port-free router; nil means "off".
+	Router RouterControl
 	// HostsFile opens the hosts file at path; nil means the file on disk.
 	// Tests use it to simulate a read-only hosts file.
 	HostsFile func(path string) hosts.File
@@ -88,6 +90,10 @@ func Main() int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	var rc RouterControl = systemRouter{}
+	if os.Getenv(EnvRouterService) == "off" {
+		rc = offRouter{}
+	}
 	color := isTerminal(os.Stdout) && os.Getenv("NO_COLOR") == "" && os.Getenv("TERM") != "dumb" && enableANSI(os.Stdout)
 	return Run(Env{
 		Args:         os.Args[1:],
@@ -102,6 +108,7 @@ func Main() int {
 		Context:      ctx,
 		RemoveBinary: removeBinary,
 		OpenBrowser:  openBrowser,
+		Router:       rc,
 	})
 }
 
@@ -117,6 +124,7 @@ type options struct {
 	noOpen     bool
 	keepBinary bool
 	port       int
+	routerPort int
 	hostsFile  string
 	configDir  string
 }
@@ -133,6 +141,7 @@ type runCtx struct {
 	hostsOverride, configOverride bool
 	mgr                           *core.Manager
 	elevateNote                   string // shown instead of the default sudo notice
+	routerChecked, routerUp       bool
 }
 
 // Run executes the CLI with env and returns the exit code.
@@ -145,6 +154,9 @@ func Run(env Env) int {
 	}
 	if env.Context == nil {
 		env.Context = context.Background()
+	}
+	if env.Router == nil {
+		env.Router = offRouter{}
 	}
 	if env.Stdin == nil {
 		env.Stdin = strings.NewReader("")
@@ -312,6 +324,8 @@ func (c *runCtx) registerFlags(fs *flag.FlagSet) {
 			fs.IntVar(&c.o.port, "port", 7357, "")
 		case flagOpen:
 			fs.BoolVar(&c.o.open, "open", false, "")
+		case flagRouterPort:
+			fs.IntVar(&c.o.routerPort, "port", 80, "")
 		case flagNoOpen:
 			fs.BoolVar(&c.o.noOpen, "no-open", false, "")
 		case flagKeepBinary:

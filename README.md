@@ -7,10 +7,14 @@
 Give the services running on your machine (or on your local network) friendly names:
 
 ```text
-http://127.0.0.1:3000       →  http://app.local:3000
-http://127.0.0.1:3002       →  http://api.local:3002
+http://127.0.0.1:3000       →  http://app.local
+http://127.0.0.1:3002       →  http://api.local
 http://192.168.1.60:8123    →  http://ha.local:8123
 ```
+
+No port to remember either: the optional [router](#port-free-urls) forwards
+`http://app.local` to `127.0.0.1:3000` (turned on by the installer, `localdns router disable`
+to turn it off).
 
 ```console
 $ localdns add app.local 127.0.0.1:3000
@@ -19,14 +23,14 @@ $ localdns add app.local 127.0.0.1:3000
 app.local → 127.0.0.1:3000
 
 URL:
-http://app.local:3000
+http://app.local   (also http://app.local:3000)
 ```
 
 Locly is **not a DNS server**. It writes a clearly marked section of your operating system's
 `hosts` file and nothing else. Internet domains keep resolving through your normal DNS,
 exactly as before.
 
-- One small binary for macOS, Linux and Windows. No runtime, no daemon, no dependencies.
+- One small binary for macOS, Linux and Windows. No runtime, no dependencies.
 - A **CLI** built for humans *and* AI agents: deterministic, scriptable, `--json` everywhere, never hangs on a prompt.
 - A **web UI** (`localdns ui`) on `127.0.0.1` for people who prefer clicking.
 - Both use the same core library, so they always behave the same.
@@ -40,6 +44,7 @@ exactly as before.
 - [Commands](#commands)
 - [For AI agents and scripts](#for-ai-agents-and-scripts)
 - [Web UI](#web-ui)
+- [Port-free URLs](#port-free-urls)
 - [How it works](#how-it-works)
 - [Security](#security)
 - [Uninstall](#uninstall)
@@ -71,7 +76,8 @@ checksum**, and copies it to:
 | macOS / Linux | `/usr/local/bin/localdns` (via `sudo` if needed), else `~/.local/bin/localdns` |
 | Windows       | `%LOCALAPPDATA%\Programs\LocalDNS\localdns.exe` (added to your user `PATH`)   |
 
-It changes nothing else: no services, no shell profile edits, no DNS settings.
+No shell profile edits, no DNS settings. When you install from your own terminal it also
+turns on [port-free URLs](#port-free-urls) (`localdns router enable`) and opens the dashboard.
 
 Installer options (environment variables):
 
@@ -80,6 +86,8 @@ Installer options (environment variables):
 | `LOCALDNS_VERSION`     | Tag to install, e.g. `v0.1.0` (default: latest)        |
 | `LOCALDNS_INSTALL_DIR` | Where to put the binary                                |
 | `LOCALDNS_BASE_URL`    | Download from a mirror instead of GitHub Releases      |
+| `LOCALDNS_NO_ROUTER`   | Set to `1` to skip turning on port-free URLs           |
+| `LOCALDNS_NO_UI`       | Set to `1` to skip opening the dashboard (macOS/Linux) |
 
 Example: `curl -fsSL …/install.sh | LOCALDNS_INSTALL_DIR=$HOME/bin sh`
 
@@ -103,16 +111,17 @@ localdns list
 ```text
 LocalDNS
 
-HOSTNAME     ADDRESS           STATUS
-─────────────────────────────────────
-app.local    127.0.0.1:3000    ✓
-api.local    127.0.0.1:3002    ✓
+HOSTNAME     ADDRESS           STATUS    OPEN
+─────────────────────────────────────────────────────────
+app.local    127.0.0.1:3000    ✓         http://app.local
+api.local    127.0.0.1:3002    ✓         http://api.local
 ha.local     192.168.1.60      ✓
 
 3 entries
 ```
 
-Open `http://app.local:3000` in your browser. Done.
+Open `http://app.local` in your browser. Done. (Without the [router](#port-free-urls), add the
+port: `http://app.local:3000`.)
 
 > Editing the hosts file needs administrator rights. On macOS and Linux, `localdns` asks for
 > them with `sudo` **for that one command only**. On Windows, run it from a terminal opened
@@ -131,6 +140,7 @@ Open `http://app.local:3000` in your browser. Done.
 | `localdns status`                    | Show file locations, write access and entry health  |
 | `localdns doctor`                    | Diagnose problems and explain how to fix them       |
 | `localdns ui`                        | Start the web interface on `http://127.0.0.1:7357`  |
+| `localdns router [enable\|disable]`  | Port-free URLs: `http://app.local` (see below)      |
 | `localdns uninstall`                 | Remove LocalDNS entries, config and the binary      |
 | `localdns info`                      | Overview of commands, flags, exit codes and files   |
 
@@ -170,13 +180,14 @@ Skip the question with `--yes` (`-y`): `localdns remove app.local --yes`.
 ```text
 LocalDNS Doctor
 
-✓ Operating system supported
-✓ Hosts file found
+✓ Operating system supported — darwin/arm64
+✓ Hosts file found — /etc/hosts
 ✓ Hosts file readable
 ✓ Hosts file writable
-✓ LocalDNS section valid
-✓ Configuration valid
-✓ Local UI available
+✓ LocalDNS section valid — 3 entries
+✓ Configuration valid — /etc/localdns/config.json
+✓ Local UI available — http://127.0.0.1:7357 (localhost only)
+✓ Port-free URLs (router) — on: http://<name> forwards to its port (127.0.0.1:80, this machine only)
 
 Everything looks good.
 ```
@@ -303,6 +314,47 @@ install from your own terminal (set `LOCALDNS_NO_UI=1` to skip).
 
 ---
 
+## Port-free URLs
+
+The hosts file can map a name to an address, but never to a port. So `http://app.local`
+would go to port 80, where your app isn't running. The **LocalDNS router** fills that gap:
+
+```console
+$ localdns router enable
+✓ Router enabled: it starts automatically when you log in
+✓ Port-free URLs are on
+
+Open your names without a port, for example:
+  http://app.local   (instead of http://app.local:3000)
+```
+
+```text
+browser → http://app.local → 127.0.0.1:80 (LocalDNS router) → 127.0.0.1:3000 (your app)
+```
+
+- It listens on **`127.0.0.1:80` only**: nothing on your network can reach it.
+- It forwards only names you added with LocalDNS that point to `127.0.0.1` and have a port.
+  Any other name gets a 404 page; it never touches other traffic, DNS, proxy or firewall
+  settings. The app sees the original `Host: app.local`, as if you had opened it directly.
+- It runs **as your user, not root**: a LaunchAgent on macOS, a login item on Windows. On
+  Linux it is a systemd service with only the right to use port 80
+  (`CAP_NET_BIND_SERVICE`), so enabling it there asks for `sudo` once.
+- `localdns list`, `add` and the web UI show `http://app.local` when it is on, and the
+  `http://app.local:3000` form always keeps working.
+
+| Command                   | What it does                                               |
+| ------------------------- | ---------------------------------------------------------- |
+| `localdns router`         | Is it on? Where is its service file and log?               |
+| `localdns router enable`  | Install it to start at login, and start it now             |
+| `localdns router disable` | Stop it and remove it from login (`uninstall` does too)    |
+| `localdns router run`     | Run it in the foreground instead (`--port 8080` to test)   |
+
+If another program already uses port 80 (a local Apache or nginx, for example), the router
+can't start; `localdns router` and `localdns doctor` say so. Names on other machines
+(`ha.local → 192.168.1.60:8123`) keep their port.
+
+---
+
 ## How it works
 
 ```text
@@ -377,13 +429,15 @@ LocalDNS manages local hostname mappings on the machine it is installed on. Noth
 **Guarantees, from the first release:**
 
 - ❌ No DNS server. LocalDNS never answers DNS queries.
-- ❌ No daemon or background service, and no process running as root. Only the one command
-  that edits the hosts file is elevated, and it exits immediately.
-- ❌ No network listener except the web UI, which binds to `127.0.0.1` only and only while
-  `localdns ui` is running.
+- ❌ No process running as root in the background. Only the one command that edits the hosts
+  file is elevated, and it exits immediately.
+- ❌ No network listener except two that bind to `127.0.0.1` only: the web UI, while
+  `localdns ui` runs, and the optional [port-free router](#port-free-urls) on port 80, which
+  runs as your user (`localdns router disable` removes it).
 - ❌ No outbound network requests from the core. No telemetry. No analytics. No data
   leaves your machine.
-- ❌ No changes to your router, DNS settings, VPN, proxy or firewall. No traffic interception.
+- ❌ No changes to your network router, DNS settings, VPN, proxy or firewall. No traffic
+  interception: the port-free router only answers requests for names you added.
 - ❌ No changes outside the `# BEGIN LOCALDNS` / `# END LOCALDNS` block of the hosts file
   (plus LocalDNS's own config directory).
 - ❌ No mapping of public internet domains, so names like `google.com` always go through your
@@ -394,8 +448,8 @@ LocalDNS manages local hostname mappings on the machine it is installed on. Noth
 - The core packages (`internal/core`, `hosts`, `config`, `validate`, …) are checked by an
   architecture test that fails if they ever import `net`, `net/http`, `crypto/tls` or
   `os/exec` on any OS.
-- An integration test audits the whole source tree: the only network listener allowed is the
-  UI's `net.Listen` on `127.0.0.1`.
+- An integration test audits the whole source tree: the only network listeners allowed are
+  the UI's and the router's `net.Listen`, both pinned to `127.0.0.1`.
 - Tests prove that existing hosts entries survive `add`, `remove`, update and uninstall byte
   for byte, and that unknown domains (`google.com`, `example.com`, …) never appear in the
   hosts file.
@@ -423,6 +477,7 @@ This will:
 
 • Remove LocalDNS-managed host entries
 • Remove LocalDNS configuration
+• Remove the LocalDNS router (port-free URLs)
 • Remove the LocalDNS application
 
 Your other hosts entries will not be modified.
@@ -433,6 +488,7 @@ Continue?
 
 ✓ LocalDNS entries removed (3 entries)
 ✓ Configuration removed
+✓ Router removed
 ✓ LocalDNS uninstalled
 ```
 
@@ -453,6 +509,10 @@ Start with `localdns doctor`; it checks everything and prints a fix for each pro
   `ipconfig /flushdns`. Browsers may also cache; reopen the tab.
 - **`.local` names are slow on macOS**: `.local` is also used by Bonjour (mDNS), and some
   lookups wait for it. Prefer `.test` or `.localhost` names on macOS if you notice delays.
+- **`http://app.local` (without the port) doesn't open**: run `localdns router`. If it is off,
+  `localdns router enable`. If it is on but not answering, another program probably uses
+  port 80; `localdns router run` shows the exact error. The name must point to `127.0.0.1`
+  and have a port (`localdns add app.local 127.0.0.1:3000`).
 - **`conflict` status**: another line in your hosts file, above the LocalDNS block, maps the
   same name. Remove or rename that line yourself.
 - **`missing` status**: the hosts line was deleted by hand. Restore it with
