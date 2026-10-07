@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/devehab/locly-dns/internal/core"
+	"github.com/devehab/locly-dns/internal/validate"
 )
 
 // LoopbackAddr is the only address the UI listens on.
@@ -140,6 +141,8 @@ func NewHandler(m *core.Manager, opts Options) (http.Handler, error) {
 	mux.HandleFunc("POST /api/entries", s.api(s.addEntry))
 	mux.HandleFunc("PUT /api/entries/{hostname}", s.api(s.editEntry))
 	mux.HandleFunc("DELETE /api/entries/{hostname}", s.api(s.removeEntry))
+	mux.HandleFunc("POST /api/entries/{hostname}/pause", s.api(s.pauseEntry))
+	mux.HandleFunc("POST /api/entries/{hostname}/resume", s.api(s.resumeEntry))
 	mux.HandleFunc("GET /api/router", s.api(s.getRouter))
 	mux.HandleFunc("POST /api/router", s.api(s.setRouter))
 	return s.secure(mux), nil
@@ -268,6 +271,9 @@ type statusResponse struct {
 	core.StatusReport
 	Version      string `json:"version"`
 	ReadOnlyHint string `json:"read_only_hint,omitempty"`
+	// LocalSuffixes are the endings a hostname may use, offered as one-click
+	// suggestions in the Add and Edit dialogs.
+	LocalSuffixes []string `json:"local_suffixes"`
 }
 
 func (s *server) getStatus(*http.Request) (int, any) {
@@ -275,7 +281,7 @@ func (s *server) getStatus(*http.Request) (int, any) {
 	if err != nil {
 		return s.errorResponse(err)
 	}
-	resp := statusResponse{StatusReport: report, Version: s.opts.Version}
+	resp := statusResponse{StatusReport: report, Version: s.opts.Version, LocalSuffixes: validate.LocalSuffixes}
 	if !report.Writable {
 		resp.ReadOnlyHint = s.opts.ReadOnlyHint
 	}
@@ -413,6 +419,22 @@ func (s *server) setRouter(r *http.Request) (int, any) {
 	resp := s.routerState()
 	resp.Running, resp.Installed, resp.DashboardURL = false, false, ""
 	return http.StatusAccepted, resp
+}
+
+func (s *server) pauseEntry(r *http.Request) (int, any) {
+	res, err := s.m.Pause(r.PathValue("hostname"))
+	if err != nil {
+		return s.errorResponse(err)
+	}
+	return http.StatusOK, res
+}
+
+func (s *server) resumeEntry(r *http.Request) (int, any) {
+	res, err := s.m.Resume(r.PathValue("hostname"))
+	if err != nil {
+		return s.errorResponse(err)
+	}
+	return http.StatusOK, res
 }
 
 func (s *server) removeEntry(r *http.Request) (int, any) {

@@ -393,9 +393,9 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>         http://h
           </article>
           <article class="ease-card">
             <span class="ease-num">3</span>
-            <h4><span class="en">Change or remove</span><span class="ar">عدّل أو احذف</span></h4>
-            <p><span class="en">Point a name somewhere new or rename it with <code dir="ltr">localdns edit</code> (or the Edit button), or remove it. Deleting always asks first, and nothing else on your system is touched.</span><span class="ar">وجّه الاسم إلى عنوان جديد أو غيّر اسمه بالأمر <code dir="ltr">localdns edit</code> (أو زر Edit)، أو احذفه. الحذف يطلب التأكيد دائمًا، ولا يُمس أي شيء آخر في نظامك.</span></p>
-            <div class="cmd small" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns remove app.local</code></div>
+            <h4><span class="en">Change, pause or remove</span><span class="ar">عدّل أو أوقف مؤقتًا أو احذف</span></h4>
+            <p><span class="en">Point a name somewhere new or rename it (<code dir="ltr">localdns edit</code> or the Edit button), switch it off for a while without losing it (<code dir="ltr">localdns pause</code> or its switch), or remove it. Nothing else on your system is touched.</span><span class="ar">وجّه الاسم إلى عنوان جديد أو غيّر اسمه (<code dir="ltr">localdns edit</code> أو زر Edit)، أو أوقفه مؤقتًا دون أن تفقده (<code dir="ltr">localdns pause</code> أو المفتاح بجانبه)، أو احذفه. ولا يُمس أي شيء آخر في نظامك.</span></p>
+            <div class="cmd small" dir="ltr"><code><span class="prompt" aria-hidden="true">$</span>localdns pause app.local</code></div>
           </article>
         </div>
       </div>
@@ -485,29 +485,46 @@ ha.local     192.168.1.60:8123    <span class="t-ok">✓</span>         http://h
         <div class="section-head">
           <p class="kicker"><span class="en">Web UI</span><span class="ar">واجهة الويب</span></p>
           <h2><span class="en">Prefer clicking? There's a web UI</span><span class="ar">تفضّل النقر؟ هناك واجهة ويب</span></h2>
-          <p><span class="en">Run <code dir="ltr">localdns ui</code> and it opens <code dir="ltr">http://127.0.0.1:7357</code> in your browser. Add and delete hosts, and see IPs, ports, URLs and status at a glance. It's built into the binary (no Node.js or Python) and listens on localhost only.</span><span class="ar">شغّل <code dir="ltr">localdns ui</code> وسيفتح <code dir="ltr">http://127.0.0.1:7357</code> في متصفحك. أضف الأسماء واحذفها، وشاهد العناوين والمنافذ والروابط والحالة بنظرة واحدة. الواجهة مدمجة في البرنامج نفسه (بلا Node.js أو Python) وتعمل على localhost فقط.</span></p>
+          <p><span class="en">Run <code dir="ltr">localdns ui</code> and it opens at <code dir="ltr">http://localdns.local</code> in your browser, with no IP to remember (it's always at <code dir="ltr">http://127.0.0.1:7357</code> too). Add names with one-click endings, paste links as they are, edit or rename in place, pause a name without deleting it, and switch port-free URLs on or off. It's built into the binary (no Node.js or Python) and listens on localhost only.</span><span class="ar">شغّل <code dir="ltr">localdns ui</code> فتُفتح في متصفحك على <code dir="ltr">http://localdns.local</code>، بلا أي عنوان IP تحفظه (وهي متاحة دائمًا أيضًا على <code dir="ltr">http://127.0.0.1:7357</code>). أضف الأسماء بنهايات تختارها بنقرة واحدة، والصق الروابط كما هي، وعدّل الاسم أو غيّره في مكانه، وأوقف أي اسم مؤقتًا دون حذفه، وفعّل الروابط بدون منفذ أو أوقفها. الواجهة مدمجة في البرنامج نفسه (بلا Node.js أو Python) وتعمل على localhost فقط.</span></p>
           <p class="sudo-note"><span class="en"><strong>It will ask for your password.</strong> Adding or deleting names edits <code dir="ltr">/etc/hosts</code>, which only an administrator can change, so on macOS and Linux the UI asks for sudo when it starts. Only the UI server runs with sudo, and Ctrl+C stops it completely. Want view-only? <code dir="ltr">localdns ui --no-elevate</code>.</span><span class="ar"><strong>ستُطلب منك كلمة المرور.</strong> إضافة الأسماء أو حذفها تعدّل <code dir="ltr">/etc/hosts</code>، ولا يغيّره إلا المسؤول، لذلك تطلب الواجهة sudo عند تشغيلها على macOS وLinux. خادم الواجهة وحده يعمل بـ sudo، و Ctrl+C يوقفه تمامًا. تريد العرض فقط؟ <code dir="ltr">localdns ui --no-elevate</code>.</span></p>
         </div>
 
         <figure class="browser">
           <div class="browser-bar" aria-hidden="true">
             <span class="dots"><span></span><span></span><span></span></span>
-            <span class="address" dir="ltr">127.0.0.1:7357</span>
+            <span class="address" dir="ltr">localdns.local</span>
           </div>
           <picture class="en">
             <source srcset="assets/img/ui-dark.png" media="(prefers-color-scheme: dark)">
-            <img src="assets/img/ui-light.png" width="1040" height="520" loading="lazy" decoding="async"
-                 alt="The LocalDNS web UI listing app.local, api.local, docs.test, ha.local and nas.lan with their IP, port, URL, an Active status and a Delete button, plus an Add Host button.">
+            <img src="assets/img/ui-light.png" width="1040" height="669" loading="lazy" decoding="async"
+                 alt="The LocalDNS dashboard: a Port-free URLs switch that is on, and a table of app.local, api.local, ha.local, nas.lan and localdns.local, each with its IP, port, URL, an on/off switch, an Active status and Edit and Delete buttons. docs.test is switched off and shows Paused.">
           </picture>
           <picture class="ar">
             <source srcset="assets/img/ui-dark.png" media="(prefers-color-scheme: dark)">
-            <img src="assets/img/ui-light.png" width="1040" height="520" loading="lazy" decoding="async"
-                 alt="واجهة LocalDNS على الويب تعرض الأسماء app.local وapi.local وdocs.test وha.local وnas.lan مع عنوان IP والمنفذ والرابط وحالة نشط وزر حذف، إضافة إلى زر Add Host.">
+            <img src="assets/img/ui-light.png" width="1040" height="669" loading="lazy" decoding="async"
+                 alt="لوحة تحكم LocalDNS: مفتاح الروابط بدون منفذ مفعّل، وجدول بالأسماء app.local وapi.local وha.local وnas.lan وlocaldns.local مع عنوان IP والمنفذ والرابط ومفتاح تشغيل وحالة نشط وزرّي Edit وDelete، والاسم docs.test موقوف مؤقتًا وحالته Paused.">
           </picture>
         </figure>
 
+        <div class="ui-detail">
+          <picture class="ui-detail-shot">
+            <source srcset="assets/img/ui-add-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="assets/img/ui-add-light.png" width="440" height="485" loading="lazy" decoding="async"
+                 alt="The Add Host dialog: the name blog with the .localhost ending selected among .localhost, .local, .test, .internal, .lan, .home.arpa, .example and .localdomain, a note that browsers treat .localhost as secure, and the address 127.0.0.1:4000.">
+          </picture>
+          <div>
+            <h3><span class="en">Type the name, click the ending</span><span class="ar">اكتب الاسم واختر النهاية بنقرة</span></h3>
+            <p><span class="en">Type <code dir="ltr">blog</code>, click <code dir="ltr">.localhost</code>, <code dir="ltr">.local</code> or <code dir="ltr">.test</code>: Locly adds the ending, or swaps the one that's there. Paste <code dir="ltr">http://localhost:4000/</code> as it is; only the address is kept.</span><span class="ar">اكتب <code dir="ltr">blog</code> ثم انقر <code dir="ltr">.localhost</code> أو <code dir="ltr">.local</code> أو <code dir="ltr">.test</code>: يضيف Locly النهاية، أو يستبدل الموجودة. والصق <code dir="ltr">http://localhost:4000/</code> كما هو، فيُحفظ العنوان فقط.</span></p>
+            <p><span class="en">For apps on this computer it suggests <code dir="ltr">.localhost</code>: browsers treat it as secure, like <code dir="ltr">localhost</code>, so sign-in, uploads and copy keep working exactly as they did on <code dir="ltr">localhost:4000</code>.</span><span class="ar">ولتطبيقات جهازك يقترح <code dir="ltr">.localhost</code>: المتصفحات تعتبرها آمنة مثل <code dir="ltr">localhost</code>، فيبقى تسجيل الدخول ورفع الملفات والنسخ يعمل تمامًا كما كان على <code dir="ltr">localhost:4000</code>.</span></p>
+          </div>
+        </div>
+
         <ul class="feature-row">
-          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Add Host with instant validation</span><span class="ar">إضافة اسم مع تحقق فوري</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">One-click endings</span><span class="ar">نهايات بنقرة واحدة</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Paste links as they are</span><span class="ar">الصق الروابط كما هي</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Edit or rename in place</span><span class="ar">عدّل أو غيّر الاسم في مكانه</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Pause a name, resume it later</span><span class="ar">أوقف اسمًا مؤقتًا وأعده لاحقًا</span></li>
+          <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Port-free URLs switch</span><span class="ar">مفتاح الروابط بدون منفذ</span></li>
           <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Delete always asks first</span><span class="ar">الحذف يطلب التأكيد دائمًا</span></li>
           <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Live status for every entry</span><span class="ar">حالة مباشرة لكل اسم</span></li>
           <li><svg width="18" height="18" aria-hidden="true"><use href="#i-check"/></svg><span class="en">Light and dark mode</span><span class="ar">وضع فاتح وداكن</span></li>
@@ -686,6 +703,8 @@ Remove app.local → 127.0.0.1:3000?
             <tbody>
               <tr><td dir="ltr"><a href="#cmd-add"><code>localdns add &lt;hostname&gt; &lt;ip[:port]&gt;</code></a></td><td><span class="en">Add a hostname</span><span class="ar">إضافة اسم</span></td></tr>
               <tr><td dir="ltr"><a href="guide/#edit"><code>localdns edit &lt;hostname&gt; [ip[:port]] [--name new]</code></a></td><td><span class="en">Change an address, rename, or both</span><span class="ar">تغيير العنوان أو الاسم أو الاثنين</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-pause"><code>localdns pause &lt;hostname&gt;</code></a></td><td><span class="en">Switch a name off, keep it</span><span class="ar">إيقاف اسم مؤقتًا مع الاحتفاظ به</span></td></tr>
+              <tr><td dir="ltr"><a href="#cmd-pause"><code>localdns resume &lt;hostname&gt;</code></a></td><td><span class="en">Switch a paused name back on</span><span class="ar">إعادة تشغيل اسم موقوف</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-list"><code>localdns list</code></a></td><td><span class="en">List hostnames with address and status</span><span class="ar">عرض الأسماء مع العنوان والحالة</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-remove"><code>localdns remove &lt;hostname&gt;</code></a></td><td><span class="en">Remove a hostname</span><span class="ar">حذف اسم</span></td></tr>
               <tr><td dir="ltr"><a href="#cmd-status"><code>localdns status</code></a></td><td><span class="en">Check files, write access and entries</span><span class="ar">فحص الملفات وصلاحية الكتابة والمدخلات</span></td></tr>
@@ -731,6 +750,13 @@ localdns list --json</code></pre>
             </dl>
 <pre class="code" dir="ltr"><code>localdns remove app.local
 localdns remove app.local --yes</code></pre>
+          </article>
+
+          <article class="cmd-card" id="cmd-pause">
+            <header><h3 dir="ltr">pause · resume</h3><code class="usage" dir="ltr">localdns pause|resume &lt;hostname&gt;</code></header>
+            <p><span class="en">Switch a name off for a while without losing it: its line leaves the hosts file, but Locly keeps its address and port. <code dir="ltr">resume</code> turns it back on. In the dashboard, use the switch next to the name.</span><span class="ar">أوقف اسمًا لفترة دون أن تفقده: يخرج سطره من ملف hosts، لكن Locly يحتفظ بعنوانه ومنفذه. والأمر <code dir="ltr">resume</code> يعيد تشغيله. وفي لوحة التحكم استخدم المفتاح بجانب الاسم.</span></p>
+<pre class="code" dir="ltr"><code>localdns pause app.local
+localdns resume app.local</code></pre>
           </article>
 
           <article class="cmd-card" id="cmd-status">
@@ -964,6 +990,14 @@ localdns add --help</code></pre>
           <details>
             <summary><span class="en">Do I have to type the port?</span><span class="ar">هل يجب أن أكتب رقم المنفذ؟</span></summary>
             <p><span class="en">No. The installer turns on Locly's router, so <code dir="ltr">http://app.local</code> opens <code dir="ltr">127.0.0.1:3000</code>. It listens on 127.0.0.1:80 only, never runs as root, and forwards only names you added that point to 127.0.0.1. If port 80 is taken by another program, use <code dir="ltr">http://app.local:3000</code> or run <code dir="ltr">localdns router</code> to see why. Names on other devices (<code dir="ltr">ha.local:8123</code>) keep their port.</span><span class="ar">لا. المثبِّت يفعّل موجّه Locly، فيفتح <code dir="ltr">http://app.local</code> العنوان <code dir="ltr">127.0.0.1:3000</code>. يستمع على 127.0.0.1:80 فقط، ولا يعمل أبدًا بصلاحيات root، ولا يحوّل إلا الأسماء التي أضفتها وتشير إلى 127.0.0.1. إذا كان برنامج آخر يستخدم المنفذ 80 فاستخدم <code dir="ltr">http://app.local:3000</code> أو شغّل <code dir="ltr">localdns router</code> لمعرفة السبب. أما أسماء الأجهزة الأخرى (<code dir="ltr">ha.local:8123</code>) فتبقى بمنفذها.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">My app opens at its name, but some features don't work</span><span class="ar">تطبيقي يُفتح باسمه، لكن بعض الميزات لا تعمل</span></summary>
+            <p><span class="en">Browsers turn on some features (many sign-in flows, <code dir="ltr">crypto.subtle</code>, the clipboard, the camera) only on <code dir="ltr">https://</code> or <code dir="ltr">localhost</code> pages. <code dir="ltr">http://app.local</code> is neither, so those parts of an app can fail there (an error like <em>reading 'digest'</em>) while <code dir="ltr">http://localhost:3000</code> worked. Use the <code dir="ltr">.localhost</code> ending instead: <code dir="ltr">localdns edit app.local --name app.localhost</code>, or Edit and click <code dir="ltr">.localhost</code>. Chrome, Edge and Firefox treat <code dir="ltr">*.localhost</code> as secure, like <code dir="ltr">localhost</code>.</span><span class="ar">المتصفحات لا تفعّل بعض الميزات (مثل كثير من طرق تسجيل الدخول و<code dir="ltr">crypto.subtle</code> والحافظة والكاميرا) إلا في صفحات <code dir="ltr">https://</code> أو <code dir="ltr">localhost</code>. والرابط <code dir="ltr">http://app.local</code> ليس هذا ولا ذاك، لذلك قد تتعطل هذه الأجزاء من التطبيق (بخطأ مثل <em>reading 'digest'</em>) بينما كان <code dir="ltr">http://localhost:3000</code> يعمل. استخدم النهاية <code dir="ltr">.localhost</code> بدلًا منها: <code dir="ltr">localdns edit app.local --name app.localhost</code>، أو Edit ثم انقر <code dir="ltr">.localhost</code>. فـ Chrome وEdge وFirefox تعتبر <code dir="ltr">*.localhost</code> آمنة مثل <code dir="ltr">localhost</code>.</span></p>
+          </details>
+          <details>
+            <summary><span class="en">Can I switch a name off without deleting it?</span><span class="ar">هل يمكنني إيقاف اسم دون حذفه؟</span></summary>
+            <p><span class="en">Yes. <code dir="ltr">localdns pause app.local</code>, or the switch next to it in the dashboard, takes it out of the hosts file but keeps its address and port. <code dir="ltr">localdns resume app.local</code> brings it back exactly as it was.</span><span class="ar">نعم. الأمر <code dir="ltr">localdns pause app.local</code>، أو المفتاح بجانبه في لوحة التحكم، يُخرجه من ملف hosts لكنه يحتفظ بعنوانه ومنفذه. والأمر <code dir="ltr">localdns resume app.local</code> يعيده كما كان تمامًا.</span></p>
           </details>
           <details>
             <summary><span class="en">Where is the port stored?</span><span class="ar">أين يُحفظ رقم المنفذ؟</span></summary>

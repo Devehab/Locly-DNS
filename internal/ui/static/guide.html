@@ -33,7 +33,7 @@
         <li><a href="#add"><span class="en">Add a name</span><span class="ar">إضافة اسم</span></a></li>
         <li><a href="#open"><span class="en">Open it</span><span class="ar">فتح الاسم</span></a></li>
         <li><a href="#list"><span class="en">See your names</span><span class="ar">عرض الأسماء</span></a></li>
-        <li><a href="#edit"><span class="en">Change a name</span><span class="ar">تعديل اسم</span></a></li>
+        <li><a href="#edit"><span class="en">Change or pause a name</span><span class="ar">تعديل اسم أو إيقافه مؤقتًا</span></a></li>
         <li><a href="#remove"><span class="en">Remove a name</span><span class="ar">حذف اسم</span></a></li>
         <li><a href="#ui"><span class="en">The dashboard</span><span class="ar">لوحة التحكم</span></a></li>
         <li><a href="#router"><span class="en">Port-free URLs</span><span class="ar">روابط بدون منفذ</span></a></li>
@@ -76,6 +76,8 @@
           <p><span class="en">This computer (<code>127.0.0.1</code>, <code>::1</code>) and private networks (<code>192.168.x.x</code>, <code>10.x.x.x</code>, <code>172.16–31.x.x</code>, <code>100.64.x.x</code> such as Tailscale). The port is optional.</span><span class="ar">هذا الجهاز (<code>127.0.0.1</code> و<code>::1</code>) والشبكات الخاصة (<code>192.168.x.x</code> و<code>10.x.x.x</code> و<code>172.16–31.x.x</code> و<code>100.64.x.x</code> مثل Tailscale). والمنفذ اختياري.</span></p>
         </div>
       </div>
+      <p class="callout"><span class="en"><strong>Web apps on this computer: use <code>.localhost</code>.</strong> Browsers enable some features (many sign-in flows, <code>crypto.subtle</code>, the clipboard, the camera) only on <code>https://</code> or <code>localhost</code> pages, and they treat any <code>*.localhost</code> name like <code>localhost</code>. So <code>http://app.localhost</code> works exactly like <code>http://localhost:3000</code> did, while parts of an app may fail at <code>http://app.local</code>. A <code>.localhost</code> name can only point to this computer; for other devices use <code>.local</code> or <code>.lan</code>.</span><span class="ar"><strong>تطبيقات الويب على جهازك: استخدم <code>.localhost</code>.</strong> المتصفحات لا تفعّل بعض الميزات (مثل كثير من طرق تسجيل الدخول و<code>crypto.subtle</code> والحافظة والكاميرا) إلا في صفحات <code>https://</code> أو <code>localhost</code>، وتعامل أي اسم <code>*.localhost</code> مثل <code>localhost</code>. لذلك يعمل <code>http://app.localhost</code> تمامًا كما كان يعمل <code>http://localhost:3000</code>، بينما قد تتعطل أجزاء من التطبيق على <code>http://app.local</code>. واسم <code>.localhost</code> لا يشير إلا إلى هذا الجهاز؛ وللأجهزة الأخرى استخدم <code>.local</code> أو <code>.lan</code>.</span></p>
+      <pre class="cmd"><code>localdns add app.localhost 127.0.0.1:3000</code></pre>
       <p class="tip"><span class="en">Adding the same name with the same address again changes nothing, so scripts can run it safely. To point an existing name somewhere else, use <a href="#edit"><code>edit</code></a>.</span><span class="ar">إضافة الاسم نفسه بالعنوان نفسه مرة أخرى لا تغيّر شيئًا، لذلك يمكن للسكربتات تكرارها بأمان. ولتوجيه اسم موجود إلى عنوان آخر استخدم <a href="#edit"><code>edit</code></a>.</span></p>
     </section>
 
@@ -98,20 +100,27 @@ ha.local     192.168.1.60      ✓</code></pre>
       <pre class="cmd"><code>localdns status</code></pre>
       <ul>
         <li><span class="en"><strong>active</strong>: the name works.</span><span class="ar"><strong>active (نشط)</strong>: الاسم يعمل.</span></li>
-        <li><span class="en"><strong>missing</strong>: the line was deleted from the hosts file by hand. Restore it with <code>localdns edit &lt;name&gt; &lt;address&gt;</code> or forget it with <code>localdns remove &lt;name&gt;</code>.</span><span class="ar"><strong>missing (مفقود)</strong>: حُذف السطر من ملف hosts يدويًا. أرجِعه بـ <code>localdns edit &lt;الاسم&gt; &lt;العنوان&gt;</code> أو احذفه نهائيًا بـ <code>localdns remove &lt;الاسم&gt;</code>.</span></li>
+        <li><span class="en"><strong>missing</strong>: the line was deleted from the hosts file by hand. Restore it with <code>localdns resume &lt;name&gt;</code> or forget it with <code>localdns remove &lt;name&gt;</code>.</span><span class="ar"><strong>missing (مفقود)</strong>: حُذف السطر من ملف hosts يدويًا. أرجِعه بـ <code>localdns resume &lt;الاسم&gt;</code> أو احذفه نهائيًا بـ <code>localdns remove &lt;الاسم&gt;</code>.</span></li>
+        <li><span class="en"><strong>paused</strong>: you switched it off (<code>localdns pause</code>). Turn it back on with <code>localdns resume &lt;name&gt;</code>.</span><span class="ar"><strong>paused (موقوف مؤقتًا)</strong>: أوقفته أنت (<code>localdns pause</code>). أعده بـ <code>localdns resume &lt;الاسم&gt;</code>.</span></li>
         <li><span class="en"><strong>conflict</strong>: another line in your hosts file, outside LocalDNS, maps the same name and wins. Remove or rename that line yourself.</span><span class="ar"><strong>conflict (تعارض)</strong>: سطر آخر في ملف hosts، خارج LocalDNS، يعرّف الاسم نفسه ويتقدّم عليه. احذف ذلك السطر أو غيّر اسمه بنفسك.</span></li>
       </ul>
     </section>
 
     <section id="edit" class="card section">
-      <h2><span class="en">5. Change a name</span><span class="ar">٥. تعديل اسم</span></h2>
+      <h2><span class="en">5. Change or pause a name</span><span class="ar">٥. تعديل اسم أو إيقافه مؤقتًا</span></h2>
       <p><span class="en">Point a name to a new address:</span><span class="ar">وجّه الاسم إلى عنوان جديد:</span></p>
       <pre class="cmd"><code>localdns edit app.local 127.0.0.1:4000</code></pre>
       <p><span class="en">Rename it (the address stays):</span><span class="ar">غيّر الاسم (ويبقى العنوان كما هو):</span></p>
       <pre class="cmd"><code>localdns edit app.local --name web.local</code></pre>
       <p><span class="en">Both at once:</span><span class="ar">أو الاثنين معًا:</span></p>
       <pre class="cmd"><code>localdns edit app.local 127.0.0.1:5173 --name web.local</code></pre>
-      <p class="tip"><span class="en">In the dashboard, use the <strong>Edit</strong> button next to a name. You never need to delete and add again.</span><span class="ar">وفي لوحة التحكم استخدم زر <strong>Edit</strong> بجانب الاسم. لن تحتاج أبدًا إلى الحذف ثم الإضافة من جديد.</span></p>
+      <p class="tip"><span class="en">In the dashboard, use the <strong>Edit</strong> button next to a name, and click an ending (<code>.localhost</code>, <code>.local</code>…) to swap it. You never need to delete and add again.</span><span class="ar">وفي لوحة التحكم استخدم زر <strong>Edit</strong> بجانب الاسم، وانقر أي نهاية (<code>.localhost</code> و<code>.local</code>…) لاستبدالها. لن تحتاج أبدًا إلى الحذف ثم الإضافة من جديد.</span></p>
+      <h3><span class="en">Pause and resume</span><span class="ar">الإيقاف المؤقت والإعادة</span></h3>
+      <p><span class="en">Switch a name off for a while without losing it: its line leaves the hosts file, so the name stops working, but LocalDNS keeps its address and port.</span><span class="ar">أوقف اسمًا لفترة دون أن تفقده: يخرج سطره من ملف hosts فيتوقف الاسم عن العمل، لكن LocalDNS يحتفظ بعنوانه ومنفذه.</span></p>
+      <pre class="cmd"><code>localdns pause app.local</code></pre>
+      <p><span class="en">Switch it back on, exactly as it was:</span><span class="ar">وأعده كما كان تمامًا:</span></p>
+      <pre class="cmd"><code>localdns resume app.local</code></pre>
+      <p class="tip"><span class="en">In the dashboard, every name has an on/off switch. A paused name shows <strong>Paused</strong> and keeps its place in the list.</span><span class="ar">وفي لوحة التحكم لكل اسم مفتاح تشغيل وإيقاف. الاسم الموقوف تظهر حالته <strong>Paused</strong> ويبقى في مكانه في القائمة.</span></p>
     </section>
 
     <section id="remove" class="card section">
@@ -158,6 +167,10 @@ ha.local     192.168.1.60      ✓</code></pre>
       <p><span class="en">Start here: it checks everything and prints a fix for each problem.</span><span class="ar">ابدأ من هنا: يفحص كل شيء ويطبع طريقة إصلاح كل مشكلة.</span></p>
       <pre class="cmd"><code>localdns doctor</code></pre>
       <dl class="faq">
+        <dt><span class="en">The app opens, but some features don't work (sign-in, uploads…)</span><span class="ar">التطبيق يُفتح، لكن بعض الميزات لا تعمل (تسجيل الدخول، رفع الملفات…)</span></dt>
+        <dd><span class="en">A browser console error like <code>Cannot read properties of undefined (reading 'digest')</code> means the page isn't treated as secure: browsers enable those features only on <code>https://</code> or <code>localhost</code> pages. Rename the entry to <code>.localhost</code>, which browsers treat like <code>localhost</code>:</span><span class="ar">خطأ في لوحة المتصفح مثل <code>Cannot read properties of undefined (reading 'digest')</code> يعني أن الصفحة لا تُعتبر آمنة: المتصفحات تفعّل هذه الميزات فقط في صفحات <code>https://</code> أو <code>localhost</code>. غيّر الاسم إلى نهاية <code>.localhost</code>، التي تعاملها المتصفحات مثل <code>localhost</code>:</span>
+          <pre class="cmd"><code>localdns edit app.local --name app.localhost</code></pre>
+          <span class="en">If sign-in still fails, add the new address (<code>http://app.localhost</code>) to the app's allowed sign-in or callback URLs.</span><span class="ar">وإذا بقي تسجيل الدخول لا يعمل، فأضف العنوان الجديد (<code>http://app.localhost</code>) إلى روابط تسجيل الدخول أو الرجوع المسموحة في إعدادات التطبيق.</span></dd>
         <dt><span class="en">The name doesn't open at all</span><span class="ar">الاسم لا يفتح إطلاقًا</span></dt>
         <dd><span class="en">Your system or browser may remember the old answer. Open a new tab, or clear the cache. macOS:</span><span class="ar">قد يتذكّر النظام أو المتصفح النتيجة القديمة. افتح تبويبًا جديدًا، أو امسح الذاكرة المؤقتة. على macOS:</span>
           <pre class="cmd"><code>sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder</code></pre>
@@ -208,6 +221,8 @@ ha.local     192.168.1.60      ✓</code></pre>
           <tbody>
             <tr><td dir="ltr"><code>localdns add &lt;name&gt; &lt;ip[:port]&gt;</code></td><td><span class="en">Add a name</span><span class="ar">إضافة اسم</span></td></tr>
             <tr><td dir="ltr"><code>localdns edit &lt;name&gt; [ip[:port]] [--name new]</code></td><td><span class="en">Change an address, rename, or both</span><span class="ar">تغيير العنوان أو الاسم أو الاثنين</span></td></tr>
+            <tr><td dir="ltr"><code>localdns pause &lt;name&gt;</code></td><td><span class="en">Switch a name off, keep it</span><span class="ar">إيقاف اسم مؤقتًا مع الاحتفاظ به</span></td></tr>
+            <tr><td dir="ltr"><code>localdns resume &lt;name&gt;</code></td><td><span class="en">Switch a paused name back on</span><span class="ar">إعادة تشغيل اسم موقوف</span></td></tr>
             <tr><td dir="ltr"><code>localdns list</code></td><td><span class="en">List your names</span><span class="ar">عرض الأسماء</span></td></tr>
             <tr><td dir="ltr"><code>localdns remove &lt;name&gt;</code></td><td><span class="en">Remove a name</span><span class="ar">حذف اسم</span></td></tr>
             <tr><td dir="ltr"><code>localdns status</code></td><td><span class="en">Files, write access and the state of each name</span><span class="ar">الملفات وصلاحية الكتابة وحالة كل اسم</span></td></tr>

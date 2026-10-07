@@ -696,3 +696,80 @@ func TestEditRefusesUnmanagedTarget(t *testing.T) {
 	_, err := f.m.Edit("app.local", "taken.local", "")
 	wantCode(t, err, CodeConflict)
 }
+
+func TestPauseAndResume(t *testing.T) {
+	f := newFixture(t, hoststest.DefaultContent)
+	original := f.hosts.Content()
+	f.add("app.local", "127.0.0.1:3000")
+	f.add("api.local", "127.0.0.1:3002")
+
+	res, err := f.m.Pause("APP.local")
+	if err != nil || res.Action != ActionPaused || res.Entry.Status != StatusPaused || res.Entry.Address != "127.0.0.1:3000" {
+		t.Fatalf("Pause = %+v, %v", res, err)
+	}
+	// The name no longer resolves, but LocalDNS still knows it.
+	if _, ok := hosts.Parse([]byte(f.hosts.Content())).Lookup("app.local"); ok {
+		t.Fatal("paused name is still in the hosts file")
+	}
+	if outsideSection(f.hosts.Content()) != original {
+		t.Fatal("pause changed lines outside the LocalDNS section")
+	}
+	list, _ := f.m.List()
+	if len(list) != 2 || list[1].Hostname != "app.local" || list[1].Status != StatusPaused || list[1].Routable() {
+		t.Fatalf("list after pause = %+v", list)
+	}
+	r, _ := f.m.Status()
+	if !r.Healthy || r.Counts.Paused != 1 || r.Counts.Active != 1 {
+		t.Fatalf("status with a paused entry = %+v", r)
+	}
+	if res, _ := f.m.Pause("app.local"); res.Action != ActionUnchanged {
+		t.Fatalf("pausing twice = %+v", res)
+	}
+
+	// Editing a paused entry keeps it paused.
+	res, err = f.m.Edit("app.local", "", "127.0.0.1:4000")
+	if err != nil || res.Entry.Status != StatusPaused {
+		t.Fatalf("Edit paused = %+v, %v", res, err)
+	}
+	if _, ok := hosts.Parse([]byte(f.hosts.Content())).Lookup("app.local"); ok {
+		t.Fatal("editing a paused entry put it back in the hosts file")
+	}
+
+	res, err = f.m.Resume("app.local")
+	if err != nil || res.Action != ActionResumed || res.Entry.Status != StatusActive || res.Entry.Address != "127.0.0.1:4000" {
+		t.Fatalf("Resume = %+v, %v", res, err)
+	}
+	if e, ok := hosts.Parse([]byte(f.hosts.Content())).Lookup("app.local"); !ok || e.IP.String() != "127.0.0.1" {
+		t.Fatal("resumed name is not back in the hosts file")
+	}
+	if res, _ := f.m.Resume("app.local"); res.Action != ActionUnchanged {
+		t.Fatalf("resuming twice = %+v", res)
+	}
+
+	// Removing a paused entry forgets it.
+	if _, err := f.m.Pause("api.local"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.m.Remove("api.local"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, _ := f.store.Load()
+	if cfg.Find("api.local") != nil {
+		t.Fatal("removed paused entry still in config")
+	}
+
+	_, err = f.m.Pause("nope.local")
+	wantCode(t, err, CodeNotFound)
+}
+
+func TestResumeRefusesNameTakenOutside(t *testing.T) {
+	f := newFixture(t, hoststest.DefaultContent)
+	f.add("app.local", "127.0.0.1:3000")
+	if _, err := f.m.Pause("app.local"); err != nil {
+		t.Fatal(err)
+	}
+	// While it was paused, someone defined the name outside LocalDNS.
+	f.hosts.SetContent(f.hosts.Content() + "10.0.0.9 app.local\n")
+	_, err := f.m.Resume("app.local")
+	wantCode(t, err, CodeConflict)
+}

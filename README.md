@@ -136,6 +136,8 @@ port: `http://app.local:3000`.)
 | ------------------------------------ | ---------------------------------------------------- |
 | `localdns add <hostname> <ip[:port]>` | Add a hostname (idempotent; `--force` to replace)   |
 | `localdns edit <hostname> [ip[:port]] [--name new]` | Change the address, rename, or both |
+| `localdns pause <hostname>`          | Switch a hostname off without removing it           |
+| `localdns resume <hostname>`         | Switch a paused hostname back on                    |
 | `localdns list`                      | List hostnames with address and status              |
 | `localdns remove <hostname>`         | Remove a hostname (asks first; `--yes` to skip)     |
 | `localdns status`                    | Show file locations, write access and entry health  |
@@ -174,7 +176,17 @@ localdns edit app.local 127.0.0.1:5173 --name web.local      # both at once
 ```
 
 The entry keeps its place in the hosts file; nothing else changes. In the dashboard, use the
-**Edit** button.
+**Edit** button, and click an ending (`.localhost`, `.local`, …) to swap it.
+
+### `pause` and `resume`
+
+```sh
+localdns pause app.local     # switch it off: the line leaves the hosts file
+localdns resume app.local    # switch it back on, exactly as it was
+```
+
+A paused entry keeps its address and port in LocalDNS's config and shows as `paused`; editing it
+keeps it paused. In the dashboard, every entry has an on/off switch.
 
 ### `remove`
 
@@ -316,8 +328,11 @@ Listening on localhost only. Press Ctrl+C to stop.
 The dashboard opens at a name, `http://localdns.local`, so there is no IP to remember
 (`localdns router enable` maps that name to the dashboard; `http://127.0.0.1:7357` always
 works too). It lists every entry (hostname, IP, port, URL, status) with **+ Add Host**,
-**Edit** and **Delete** buttons, and a switch for [port-free URLs](#port-free-urls). Paste a
-link as it is (`http://127.0.0.1:3000/`): the dashboard keeps just the address. Deleting always
+**Edit** and **Delete** buttons, an on/off switch per entry (pause and resume), and a switch for
+[port-free URLs](#port-free-urls). Type a name and click an ending (`.localhost`, `.local`,
+`.test`, …) to add or swap it; for apps on this computer the dashboard recommends `.localhost`
+(see [Allowed hostnames](#allowed-hostnames-and-addresses)). Paste a link as it is
+(`http://127.0.0.1:3000/`): the dashboard keeps just the address. Deleting always
 asks for confirmation first, and **Terminal guide** opens a complete command guide in English
 and Arabic (also on [the website](https://devehab.github.io/Locly-DNS/guide/)). The UI is part
 of the binary (no Node.js or Python needed) and listens on `127.0.0.1` only.
@@ -449,6 +464,14 @@ reserved for local or private use:
 
 `.local` · `.localhost` · `.test` · `.example` · `.internal` · `.home.arpa` · `.lan` · `.localdomain`
 
+**For web apps on this computer, prefer `.localhost`.** Browsers enable some features (many
+sign-in flows, `crypto.subtle`, the clipboard, the camera) only on `https://` or `localhost` pages
+(a *secure context*), and they treat any `*.localhost` name like `localhost`. So
+`http://app.localhost` behaves exactly like `http://localhost:3000`, while parts of an app can
+fail at `http://app.local`. A `.localhost` name must point to this computer (`127.0.0.1`, `::1`):
+browsers send it there themselves, whatever the hosts file says, so LocalDNS refuses
+`nas.localhost → 192.168.1.20`; use `.local` or `.lan` for other devices.
+
 `localdns add google.com 127.0.0.1` is refused. Addresses must be local: loopback
 (`127.0.0.0/8`, `::1`), private networks (`10/8`, `172.16/12`, `192.168/16`, `fc00::/7`),
 link-local (`169.254/16`, `fe80::/10`) or CGNAT/VPN overlay space (`100.64/10`, e.g.
@@ -537,6 +560,12 @@ Windows the installer's `PATH` entry is removed too.
 ## Troubleshooting
 
 Start with `localdns doctor`; it checks everything and prints a fix for each problem.
+
+- **The app opens at its name, but sign-in, uploads or other features fail** (for example the
+  browser console shows `Cannot read properties of undefined (reading 'digest')`): the page is
+  not a secure context. Rename the entry to the `.localhost` ending, which browsers treat like
+  `localhost`: `localdns edit app.local --name app.localhost`. If sign-in still fails, add
+  `http://app.localhost` to the app's allowed sign-in / callback URLs.
 
 - **"needs administrator rights"**: run the command with `sudo` (macOS/Linux) or from an
   administrator terminal (Windows). Interactive use on macOS/Linux asks for `sudo`

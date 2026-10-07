@@ -1174,8 +1174,43 @@ code.node {
 
 .browser img {
   width: 100%;
-  aspect-ratio: 2 / 1;
+  height: auto;
   background: var(--bg-soft);
+}
+
+/* The Add dialog next to its explanation. */
+.ui-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  margin-top: 40px;
+}
+
+@media (min-width: 860px) {
+  .ui-detail {
+    grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+
+.ui-detail-shot img {
+  display: block;
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+.ui-detail h3 {
+  margin: 0 0 12px;
+}
+
+.ui-detail p {
+  color: var(--text-2);
 }
 
 .feature-row {

@@ -173,3 +173,33 @@ func TestFormatAddress(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestMappingLocalhostNamesStayOnThisComputer(t *testing.T) {
+	ok := [][2]string{
+		{"app.localhost", "127.0.0.1"}, {"app.localhost", "::1"}, {"app.localhost", "127.0.0.2"},
+		{"nas.local", "192.168.1.20"}, {"app.local", "127.0.0.1"},
+	}
+	for _, c := range ok {
+		if err := Mapping(c[0], netip.MustParseAddr(c[1])); err != nil {
+			t.Errorf("Mapping(%s, %s): %v", c[0], c[1], err)
+		}
+	}
+	err := Mapping("nas.localhost", netip.MustParseAddr("192.168.1.20"))
+	var ve *Error
+	if !errors.As(err, &ve) || !strings.Contains(ve.Hint, "nas.local") {
+		t.Fatalf("Mapping(nas.localhost, 192.168.1.20) = %v", err)
+	}
+}
+
+func TestSplitSuffix(t *testing.T) {
+	for in, want := range map[string][2]string{
+		"opencanvas.local": {"opencanvas", "local"},
+		"my.app.localhost": {"my.app", "localhost"},
+		"svc.home.arpa":    {"svc", "home.arpa"},
+		"nas":              {"nas", ""},
+	} {
+		if b, s := SplitSuffix(in); b != want[0] || s != want[1] {
+			t.Errorf("SplitSuffix(%q) = %q, %q; want %q, %q", in, b, s, want[0], want[1])
+		}
+	}
+}

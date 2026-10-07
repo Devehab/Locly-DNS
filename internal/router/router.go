@@ -108,6 +108,11 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		page(w, http.StatusNotFound, html.EscapeString(host)+" isn't managed by LocalDNS",
 			"Add it with <code>localdns add "+html.EscapeString(host)+" 127.0.0.1:PORT</code>, or open the dashboard with <code>localdns ui</code>.")
 		return
+	case e.Status == core.StatusPaused:
+		page(w, http.StatusNotFound, html.EscapeString(host)+" is paused",
+			"It is switched off in LocalDNS. Turn it back on in the dashboard (<code>localdns ui</code>) "+
+				"or with <code>localdns resume "+html.EscapeString(host)+"</code>.")
+		return
 	case e.Port == nil:
 		page(w, http.StatusNotFound, html.EscapeString(host)+" has no port",
 			"LocalDNS knows <b>"+html.EscapeString(host)+"</b> → "+html.EscapeString(e.IP)+" but not which port the app uses. "+

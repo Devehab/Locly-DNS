@@ -125,6 +125,115 @@
     return clean;
   }
 
+  // ---- Endings (.local, .test, …) -----------------------------------------
+  // One click adds the ending to the name typed so far, or swaps the ending
+  // it already has.
+
+  // .localhost first: browsers treat it as secure, like localhost itself.
+  var preferredOrder = ["localhost", "local", "test", "internal", "lan", "home.arpa", "example", "localdomain"];
+  var suffixes = preferredOrder.slice();
+
+  function splitName(value) {
+    var v = value.trim().toLowerCase().replace(/\.+$/, "");
+    var longestFirst = suffixes.slice().sort(function (a, b) { return b.length - a.length; });
+    for (var i = 0; i < longestFirst.length; i++) {
+      var s = longestFirst[i];
+      if (v === s) return { base: "", suffix: s };
+      if (v.slice(-(s.length + 1)) === "." + s) return { base: v.slice(0, -(s.length + 1)), suffix: s };
+    }
+    return { base: v, suffix: "" };
+  }
+
+  function renderSuffixes(box, input) {
+    box.querySelectorAll("button").forEach(function (b) { box.removeChild(b); });
+    suffixes.forEach(function (s) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip";
+      b.textContent = "." + s;
+      b.dataset.suffix = s;
+      b.addEventListener("click", function () {
+        var parts = splitName(cleanValue(input.value).value);
+        input.focus();
+        if (parts.base) {
+          input.value = parts.base + "." + s;
+          input.setSelectionRange(input.value.length, input.value.length);
+        } else {
+          // Nothing typed yet: put the ending in and the cursor before it.
+          input.value = "." + s;
+          input.setSelectionRange(0, 0);
+        }
+        markSuffix(box, input);
+        input.dispatchEvent(new Event("input"));
+      });
+      box.appendChild(b);
+    });
+    markSuffix(box, input);
+  }
+
+  function markSuffix(box, input) {
+    var current = splitName(input.value).suffix;
+    box.querySelectorAll("button").forEach(function (b) {
+      var on = b.dataset.suffix === current;
+      b.classList.toggle("chip-on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function setSuffixes(list) {
+    if (!list || !list.length) return;
+    var ordered = preferredOrder.filter(function (s) { return list.indexOf(s) >= 0; });
+    list.forEach(function (s) { if (ordered.indexOf(s) < 0) ordered.push(s); });
+    if (ordered.join() === suffixes.join()) return;
+    suffixes = ordered;
+    renderSuffixes($("add-suffixes"), $("add-hostname"));
+    renderSuffixes($("edit-suffixes"), $("edit-hostname"));
+  }
+
+  // The hint under the endings explains the choice. Browsers enable some
+  // features (crypto.subtle, the clipboard, many sign-in flows) only on
+  // https:// or localhost pages, and treat *.localhost like localhost; a
+  // .localhost name can only ever mean this computer.
+  function isThisComputer(address) {
+    var a = cleanValue(address).value.toLowerCase();
+    return a === "" || /^localhost(:\d+)?$/.test(a) || /^127\./.test(a) || /^(\[::1\](:\d+)?|::1)$/.test(a);
+  }
+
+  function updateHint(hint, hostInput, addrInput) {
+    var suffix = splitName(hostInput.value).suffix;
+    var here = isThisComputer(addrInput.value);
+    var text = "";
+    var warn = false;
+    if (suffix === "localhost" && here) {
+      text = "✓ Browsers treat .localhost as secure, like localhost: sign-in, uploads and copy work as they do there.";
+    } else if (suffix === "localhost") {
+      text = ".localhost always means this computer. For another device, pick .local or .lan.";
+      warn = true;
+    } else if (here) {
+      text = "Tip: for apps on this computer, .localhost works best. Browsers treat it as secure, like localhost; " +
+        "with other endings some features (sign-in, uploads) may not work.";
+    }
+    hint.textContent = text;
+    hint.hidden = !text;
+    hint.classList.toggle("suffix-hint-warn", warn);
+  }
+
+  var hintUpdaters = {};
+  [["add-suffixes", "add-hostname", "add-address", "add-suffix-hint"],
+   ["edit-suffixes", "edit-hostname", "edit-address", "edit-suffix-hint"]].forEach(function (ids) {
+    var box = $(ids[0]);
+    var input = $(ids[1]);
+    var address = $(ids[2]);
+    var hint = $(ids[3]);
+    var update = function () { updateHint(hint, input, address); };
+    hintUpdaters[ids[0]] = update;
+    renderSuffixes(box, input);
+    input.addEventListener("input", function () { markSuffix(box, input); update(); });
+    address.addEventListener("input", update);
+    address.addEventListener("blur", function () { setTimeout(update, 0); });
+    address.addEventListener("paste", function () { setTimeout(update, 10); });
+  });
+
   var cleanAddHost = attachCleaner($("add-hostname"), $("add-note"));
   var cleanAddAddress = attachCleaner($("add-address"), $("add-note"), $("add-hostname"));
   var cleanEditHost = attachCleaner($("edit-hostname"), $("edit-note"));
@@ -132,7 +241,7 @@
 
   // ---- Table --------------------------------------------------------------
 
-  var statusLabels = { active: "Active", missing: "Missing", conflict: "Conflict" };
+  var statusLabels = { active: "Active", missing: "Missing", conflict: "Conflict", paused: "Paused" };
 
   function render(entries) {
     lastEntries = entries;
@@ -140,15 +249,20 @@
     rows.textContent = "";
     $("empty").hidden = entries.length > 0;
     entries.forEach(function (e) {
+      var paused = e.status === "paused";
       var tr = document.createElement("tr");
-      tr.appendChild(cell(e.hostname, "mono strong"));
-      tr.appendChild(cell(e.ip, "mono"));
-      tr.appendChild(cell(e.port === null ? "—" : String(e.port), "mono"));
+      if (paused) tr.className = "row-paused";
+      tr.appendChild(cell(e.hostname, "mono strong fade"));
+      tr.appendChild(cell(e.ip, "mono fade"));
+      tr.appendChild(cell(e.port === null ? "—" : String(e.port), "mono fade"));
 
-      var urlTd = cell(null, "mono");
+      var urlTd = cell(null, "mono fade");
       // Prefer the port-free address when the LocalDNS router serves it.
       var open = e.short_url || e.url;
-      if (open) {
+      if (paused) {
+        urlTd.textContent = e.url;
+        urlTd.title = "Paused: switch it on to use this address";
+      } else if (open) {
         var a = document.createElement("a");
         a.href = open;
         a.textContent = open;
@@ -162,6 +276,10 @@
       tr.appendChild(urlTd);
 
       var statusTd = cell(null);
+      var statusWrap = document.createElement("div");
+      statusWrap.className = "status-wrap";
+      statusWrap.appendChild(entrySwitch(e));
+      statusTd.appendChild(statusWrap);
       var badge = document.createElement("span");
       badge.className = "status status-" + e.status;
       var dot = document.createElement("span");
@@ -170,7 +288,7 @@
       badge.appendChild(dot);
       badge.appendChild(document.createTextNode(statusLabels[e.status] || e.status));
       if (e.detail) badge.title = e.detail;
-      statusTd.appendChild(badge);
+      statusWrap.appendChild(badge);
       tr.appendChild(statusTd);
 
       var actions = cell(null, "actions-cell");
@@ -183,12 +301,48 @@
     renderRouter();
   }
 
+  // An on/off switch per name: off pauses it (kept, but out of the hosts
+  // file), on resumes it.
+  function entrySwitch(e) {
+    var label = document.createElement("label");
+    label.className = "switch switch-small";
+    label.title = e.status === "paused" ? "Paused: switch on to use " + e.hostname : "On: switch off to pause " + e.hostname;
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.setAttribute("role", "switch");
+    input.setAttribute("aria-label", e.hostname + " on");
+    input.checked = e.status !== "paused";
+    input.disabled = !!readOnlyHint;
+    input.addEventListener("change", function () {
+      input.disabled = true;
+      var action = input.checked ? "resume" : "pause";
+      api("POST", "/api/entries/" + encodeURIComponent(e.hostname) + "/" + action, {})
+        .then(function () {
+          toast(action === "pause"
+            ? "✓ " + e.hostname + " paused. It stays here; switch it on any time."
+            : "✓ " + e.hostname + " is on again");
+          return refresh();
+        })
+        .catch(function (err) {
+          input.checked = !input.checked;
+          input.disabled = false;
+          showBanner(errorText(err), "error");
+        });
+    });
+    var slider = document.createElement("span");
+    slider.className = "slider";
+    slider.setAttribute("aria-hidden", "true");
+    label.appendChild(input);
+    label.appendChild(slider);
+    return label;
+  }
+
   // ---- Port-free URLs (router) --------------------------------------------
 
   function exampleEntry() {
     for (var i = 0; i < lastEntries.length; i++) {
       var e = lastEntries[i];
-      if (e.port !== null && e.ip === "127.0.0.1" && e.hostname !== "localdns.local") return e;
+      if (e.port !== null && e.ip === "127.0.0.1" && e.status === "active" && e.hostname !== "localdns.local") return e;
     }
     return null;
   }
@@ -274,6 +428,7 @@
     return Promise.all([api("GET", "/api/status"), api("GET", "/api/entries"), loadRouter()])
       .then(function (results) {
         var status = results[0];
+        setSuffixes(status.local_suffixes);
         readOnlyHint = status.writable ? "" : (status.read_only_hint || "The hosts file is read-only.");
         $("footer-hosts").textContent = "Hosts file: " + status.hosts_file;
         if (readOnlyHint) {
@@ -298,6 +453,8 @@
 
   $("add-button").addEventListener("click", function () {
     $("add-form").reset();
+    markSuffix($("add-suffixes"), $("add-hostname"));
+    hintUpdaters["add-suffixes"]();
     setNote($("add-note"), "");
     setError($("add-error"), readOnlyHint ? "Read-only: " + readOnlyHint : "");
     addDialog.showModal();
@@ -333,6 +490,8 @@
     $("edit-name").textContent = entry.hostname;
     $("edit-hostname").value = entry.hostname;
     $("edit-address").value = entry.address;
+    markSuffix($("edit-suffixes"), $("edit-hostname"));
+    hintUpdaters["edit-suffixes"]();
     setNote($("edit-note"), "");
     setError($("edit-error"), readOnlyHint ? "Read-only: " + readOnlyHint : "");
     editDialog.showModal();

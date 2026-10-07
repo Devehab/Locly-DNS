@@ -110,6 +110,14 @@ python3 -I -c 'import json,sys; e=json.load(open(sys.argv[1]))["entries"][0]; as
 	fail "list --json has no short_url"
 "$BIN" router
 
+step "a paused name is not forwarded, and resume brings it back"
+"$BIN" pause app.test "${paths[@]}" --no-elevate
+sleep 1.5 # the router re-reads entries at most once a second
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 3 -H "Host: app.test" http://127.0.0.1/)
+[ "$code" = 404 ] || fail "paused app.test answered $code, want 404"
+"$BIN" resume app.test "${paths[@]}" --no-elevate
+wait_for_router
+
 step "the dashboard opens by name: http://localdns.local"
 code=$(curl -s -o /dev/null -w '%{http_code}' -m 3 -H "Host: localdns.local" http://127.0.0.1/)
 [ "$code" = 502 ] || fail "localdns.local without a running dashboard answered $code, want 502"

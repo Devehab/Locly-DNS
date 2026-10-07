@@ -120,6 +120,10 @@ td a:hover { text-decoration: underline; }
 .status-active .dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 20%, transparent); }
 .status-missing .dot { background: var(--danger); }
 .status-conflict .dot { background: var(--warn); }
+.status-paused { color: var(--muted); }
+.status-paused .dot { background: transparent; box-shadow: inset 0 0 0 2px var(--muted); }
+.status-wrap { display: inline-flex; align-items: center; gap: 10px; vertical-align: middle; }
+.row-paused .fade { opacity: 0.5; }
 
 .empty { padding: 40px 16px; text-align: center; color: var(--muted); }
 .empty-title { color: var(--text); font-weight: 600; margin: 0 0 4px; }
@@ -218,6 +222,31 @@ code {
 .switch input:checked + .slider::after { transform: translateX(20px); }
 .switch input:disabled + .slider { opacity: 0.5; }
 .switch input:focus-visible + .slider { outline: 2px solid var(--primary); outline-offset: 2px; }
+.switch-small { width: 34px; height: 20px; }
+.switch-small .slider::after { top: 3px; left: 3px; width: 14px; height: 14px; }
+.switch-small input:checked + .slider::after { transform: translateX(14px); }
+
+/* One-click hostname endings in the Add and Edit dialogs */
+.suffixes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.suffixes-label { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.chip {
+  appearance: none;
+  font: inherit;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+.chip:hover { border-color: var(--primary); color: var(--primary); }
+.chip:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+.chip-on { background: var(--primary); border-color: var(--primary); color: #fff; }
+.chip-on:hover { color: #fff; }
+.suffix-hint { font-size: 12.5px; margin: 8px 0 0 !important; }
+.suffix-hint-warn { color: var(--warn) !important; }
 
 .note { font-size: 13px; color: var(--ok) !important; margin: 8px 0 0 !important; }
 .callout {

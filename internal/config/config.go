@@ -31,9 +31,11 @@ const SchemaVersion = 1
 
 // Entry is the metadata for one hostname.
 type Entry struct {
-	Hostname  string    `json:"hostname"`
-	IP        string    `json:"ip"`
-	Port      uint16    `json:"port,omitempty"`
+	Hostname string `json:"hostname"`
+	IP       string `json:"ip"`
+	Port     uint16 `json:"port,omitempty"`
+	// Paused entries are kept but left out of the hosts file until resumed.
+	Paused    bool      `json:"paused,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

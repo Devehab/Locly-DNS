@@ -161,10 +161,20 @@ func TestVersion(t *testing.T) {
 func TestAddListRemoveHuman(t *testing.T) {
 	h := newHarness(t)
 	r := h.run([]string{"add", "app.local", "127.0.0.1:3000"})
-	want := "✓ Added successfully\n\napp.local → 127.0.0.1:3000\n\nURL:\nhttp://app.local:3000\n"
+	want := "✓ Added successfully\n\napp.local → 127.0.0.1:3000\n\nURL:\nhttp://app.local:3000\n\n" +
+		"Tip: if parts of the app fail at http://app.local (sign-in, uploads), use app.localhost;\n" +
+		"browsers treat .localhost as secure, like localhost: localdns edit app.local --name app.localhost\n"
 	if r.code != 0 || r.stdout != want {
 		t.Fatalf("add output:\n%q\nwant:\n%q", r.stdout, want)
 	}
+	// A .localhost name needs no tip, and it can't point to another device.
+	if r := h.run([]string{"add", "web.localhost", "127.0.0.1:5173"}); r.code != 0 || strings.Contains(r.stdout, "Tip") {
+		t.Fatalf("add .localhost:\n%q", r.stdout)
+	}
+	if r := h.run([]string{"add", "nas.localhost", "192.168.1.20"}); r.code != ExitUsage || !strings.Contains(r.stderr, "nas.local") {
+		t.Fatalf("add .localhost for another device: %+v", r)
+	}
+	h.run([]string{"remove", "web.localhost", "--yes"})
 	r = h.run([]string{"add", "ha.local", "192.168.1.60"})
 	if r.code != 0 || r.stdout != "✓ Added successfully\n\nha.local → 192.168.1.60\n" {
 		t.Fatalf("add without port:\n%q", r.stdout)
@@ -628,5 +638,39 @@ func TestEdit(t *testing.T) {
 	}
 	if r := h.run([]string{"add", "api.local", "localhost:3002", "--json"}); r.json(t)["entry"].(map[string]any)["address"] != "127.0.0.1:3002" {
 		t.Fatalf("add localhost: %+v", r)
+	}
+}
+
+func TestPauseResume(t *testing.T) {
+	h := newHarness(t)
+	h.run([]string{"add", "app.local", "127.0.0.1:3000"})
+
+	r := h.run([]string{"pause", "app.local"})
+	if r.code != 0 || !strings.Contains(r.stdout, "Paused app.local") || !strings.Contains(r.stdout, "localdns resume app.local") {
+		t.Fatalf("pause: %+v", r)
+	}
+	if strings.Contains(h.hosts.Content(), "app.local") {
+		t.Fatal("paused name still in the hosts file")
+	}
+	r = h.run([]string{"list"})
+	if !strings.Contains(r.stdout, "○ paused") || strings.Contains(r.stdout, "need attention") {
+		t.Fatalf("list with a paused entry:\n%s", r.stdout)
+	}
+	if v := h.run([]string{"status", "--json"}).json(t); v["healthy"] != true {
+		t.Fatalf("a paused entry made status unhealthy: %v", v)
+	}
+	if r := h.run([]string{"pause", "app.local"}); !strings.Contains(r.stdout, "already paused") {
+		t.Fatalf("pause twice: %+v", r)
+	}
+
+	r = h.run([]string{"resume", "app.local", "--json"})
+	if v := r.json(t); r.code != 0 || v["action"] != "resumed" || !strings.Contains(h.hosts.Content(), "app.local") {
+		t.Fatalf("resume: %+v", r)
+	}
+	if r := h.run([]string{"pause", "nope.local"}); r.code != ExitNotFound {
+		t.Fatalf("pause unknown: %+v", r)
+	}
+	if r := h.run([]string{"resume"}); r.code != ExitUsage {
+		t.Fatalf("resume without a name: %+v", r)
 	}
 }

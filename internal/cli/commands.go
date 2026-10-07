@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -134,6 +135,33 @@ func init() {
 				"localdns remove app.local --yes --json",
 			},
 			minArgs: 1, maxArgs: 1, run: runRemove,
+		},
+		{
+			name: "pause", summary: "Switch a hostname off, keep it", listed: true,
+			usage: "localdns pause <hostname>",
+			long: "Switch a hostname off without removing it: its line leaves the hosts file,\n" +
+				"so the name stops working, but LocalDNS keeps it (address and port) and\n" +
+				"`localdns resume` turns it back on.",
+			args:  [][2]string{{"hostname", "The hostname to switch off, e.g. app.local"}},
+			flags: []int{flagNoElevate},
+			examples: []string{
+				"localdns pause app.local",
+				"localdns pause app.local --json",
+			},
+			minArgs: 1, maxArgs: 1, run: runPause,
+		},
+		{
+			name: "resume", summary: "Switch a paused hostname back on", listed: true,
+			usage: "localdns resume <hostname>",
+			long: "Switch a paused hostname back on: its line returns to the hosts file. Also\n" +
+				"restores an entry whose line was deleted from the hosts file by hand.",
+			args:  [][2]string{{"hostname", "The hostname to switch on, e.g. app.local"}},
+			flags: []int{flagNoElevate},
+			examples: []string{
+				"localdns resume app.local",
+				"localdns resume app.local --json",
+			},
+			minArgs: 1, maxArgs: 1, run: runResume,
 		},
 		{
 			name: "status", summary: "Check entries", listed: true,
@@ -271,7 +299,27 @@ func runAdd(c *runCtx) int {
 		c.out.println(c.out.ok() + " Already added (nothing changed)")
 	}
 	c.printEntry(res.Entry)
+	if res.Action != core.ActionUnchanged {
+		c.secureContextTip(res.Entry)
+	}
 	return ExitOK
+}
+
+// secureContextTip suggests a .localhost name for a web app on this
+// computer. Browsers enable features such as crypto.subtle, the clipboard
+// and some sign-in flows only on https:// or localhost pages, and they treat
+// *.localhost like localhost; http://app.local is neither, so parts of an
+// app can fail there while http://localhost:3000 worked.
+func (c *runCtx) secureContextTip(e core.Entry) {
+	ip, err := netip.ParseAddr(e.IP)
+	if err != nil || !ip.IsLoopback() || e.Port == nil || strings.HasSuffix(e.Hostname, ".localhost") {
+		return
+	}
+	base, _ := validate.SplitSuffix(e.Hostname)
+	p := c.out
+	p.println()
+	p.println(p.dim("Tip: if parts of the app fail at http://" + e.Hostname + " (sign-in, uploads), use " + base + ".localhost;"))
+	p.println(p.dim("browsers treat .localhost as secure, like localhost: localdns edit " + e.Hostname + " --name " + base + ".localhost"))
 }
 
 func (c *runCtx) printEntry(e core.Entry) {
@@ -322,6 +370,55 @@ func runEdit(c *runCtx) int {
 	return ExitOK
 }
 
+// ---- pause / resume ----
+
+func runPause(c *runCtx) int {
+	res, err := c.manager().Pause(c.args[0])
+	if err != nil {
+		if code, ok := c.tryElevate(err); ok {
+			return code
+		}
+		return c.fail(err)
+	}
+	if c.o.json {
+		writeJSON(c.env.Stdout, res)
+		return ExitOK
+	}
+	p := c.out
+	if res.Action == core.ActionUnchanged {
+		p.println(p.ok() + " " + res.Entry.Hostname + " is already paused")
+	} else {
+		p.println(p.ok() + " Paused " + res.Entry.Hostname)
+	}
+	p.println()
+	p.println(res.Entry.Hostname + " → " + res.Entry.Address + p.dim(" (kept, but switched off)"))
+	p.println()
+	p.println("Switch it back on with: localdns resume " + res.Entry.Hostname)
+	return ExitOK
+}
+
+func runResume(c *runCtx) int {
+	res, err := c.manager().Resume(c.args[0])
+	if err != nil {
+		if code, ok := c.tryElevate(err); ok {
+			return code
+		}
+		return c.fail(err)
+	}
+	res.Entry = c.withShortURLs([]core.Entry{res.Entry})[0]
+	if c.o.json {
+		writeJSON(c.env.Stdout, res)
+		return ExitOK
+	}
+	if res.Action == core.ActionUnchanged {
+		c.out.println(c.out.ok() + " " + res.Entry.Hostname + " is already on")
+	} else {
+		c.out.println(c.out.ok() + " Resumed " + res.Entry.Hostname)
+	}
+	c.printEntry(res.Entry)
+	return ExitOK
+}
+
 // ---- list ----
 
 func runList(c *runCtx) int {
@@ -350,7 +447,7 @@ func runList(c *runCtx) int {
 	c.out.println()
 	c.out.println(plural(len(list), "entry", "entries"))
 	for _, e := range list {
-		if e.Status != core.StatusActive {
+		if e.Status != core.StatusActive && e.Status != core.StatusPaused {
 			c.out.println()
 			c.out.println("Run `localdns status` for details on entries that need attention.")
 			break
@@ -362,6 +459,9 @@ func runList(c *runCtx) int {
 // openURL is the address to open in a browser: port-free when the router
 // serves the entry.
 func openURL(e core.Entry) string {
+	if e.Status == core.StatusPaused {
+		return ""
+	}
 	if e.ShortURL != "" {
 		return e.ShortURL
 	}
@@ -379,6 +479,8 @@ func statusSymbol(p *printer, s core.Status) string {
 		return p.fail() + " missing"
 	case core.StatusConflict:
 		return p.warn() + " conflict"
+	case core.StatusPaused:
+		return p.dim("○ paused")
 	}
 	return string(s)
 }
@@ -430,7 +532,7 @@ func runStatus(c *runCtx) int {
 	section := r.Section
 	switch r.Section {
 	case core.SectionPresent:
-		section = "present (" + plural(len(r.Entries)-r.Counts.Missing, "entry", "entries") + ")"
+		section = "present (" + plural(len(r.Entries)-r.Counts.Missing-r.Counts.Paused, "entry", "entries") + ")"
 	case core.SectionAbsent:
 		section = "not created yet"
 	case core.SectionInvalid:
@@ -456,6 +558,7 @@ func runStatus(c *runCtx) int {
 				core.StatusActive:   p.ok() + " active",
 				core.StatusMissing:  p.fail() + " missing",
 				core.StatusConflict: p.warn() + " conflict",
+				core.StatusPaused:   p.dim("○ paused"),
 			}[e.Status]
 			rows = append(rows, []string{e.Hostname, e.Address, label})
 		}

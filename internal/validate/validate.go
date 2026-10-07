@@ -247,6 +247,35 @@ func LocalIP(ip netip.Addr) error {
 		"%s is a public internet address", ip)
 }
 
+// Mapping checks that hostname may point to ip. Names ending in .localhost
+// always mean this computer (RFC 6761): browsers such as Chrome send them to
+// the loopback address themselves and never look at the hosts file, so a
+// .localhost name for another device would silently go to the wrong place.
+func Mapping(hostname string, ip netip.Addr) error {
+	if strings.HasSuffix(hostname, ".localhost") && !ip.Unmap().IsLoopback() {
+		base, _ := SplitSuffix(hostname)
+		return invalid("Use another ending for other devices, e.g. "+base+".local or "+base+".lan",
+			"%s must point to this computer (127.0.0.1): browsers always send .localhost names here, not to %s",
+			hostname, ip)
+	}
+	return nil
+}
+
+// SplitSuffix splits a hostname into its name and its local ending, e.g.
+// "my-app.home.arpa" into "my-app" and "home.arpa". The ending is empty when
+// the name has none of LocalSuffixes.
+func SplitSuffix(hostname string) (base, suffix string) {
+	for _, s := range LocalSuffixes {
+		if strings.HasSuffix(hostname, "."+s) && len(s) > len(suffix) {
+			suffix = s
+		}
+	}
+	if suffix == "" {
+		return hostname, ""
+	}
+	return strings.TrimSuffix(hostname, "."+suffix), suffix
+}
+
 // FormatAddress renders ip and an optional port (0 = none) the way users type
 // them: "127.0.0.1:3000", "192.168.1.60", "[::1]:3000".
 func FormatAddress(ip netip.Addr, port uint16) string {

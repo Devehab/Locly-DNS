@@ -262,3 +262,14 @@ func TestDashboardNotRunning(t *testing.T) {
 		t.Fatalf("got %d %q", rec.Code, rec.Body.String())
 	}
 }
+
+func TestPausedNameIsNotForwarded(t *testing.T) {
+	_, port := upstream(t)
+	e := entry("app.local", "127.0.0.1", port)
+	e.Status = core.StatusPaused
+	r := New(func() ([]core.Entry, error) { return []core.Entry{e}, nil }, "test")
+	rec := get(t, r, "app.local", "/")
+	if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), "localdns resume app.local") {
+		t.Fatalf("got %d %q", rec.Code, rec.Body.String())
+	}
+}

@@ -73,7 +73,11 @@
     <form id="add-form" novalidate>
       <h2 id="add-title">Add Host</h2>
       <label for="add-hostname">Hostname</label>
-      <input id="add-hostname" name="hostname" placeholder="app.local" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <input id="add-hostname" name="hostname" placeholder="my-app" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-describedby="add-suffixes-label">
+      <div class="suffixes" id="add-suffixes" role="group" aria-labelledby="add-suffixes-label">
+        <span class="suffixes-label" id="add-suffixes-label">Ending:</span>
+      </div>
+      <p id="add-suffix-hint" class="suffix-hint" role="status" hidden></p>
       <label for="add-address">Address</label>
       <input id="add-address" name="address" placeholder="127.0.0.1:3000" autocomplete="off" autocapitalize="off" spellcheck="false" required>
       <p class="help">IP address with an optional port, e.g. <code>127.0.0.1:3000</code> or <code>192.168.1.60</code>. Pasting a link like <code>http://127.0.0.1:3000/</code> works too.</p>
@@ -90,7 +94,11 @@
     <form id="edit-form" novalidate>
       <h2 id="edit-title">Edit <span id="edit-name"></span></h2>
       <label for="edit-hostname">Hostname</label>
-      <input id="edit-hostname" name="hostname" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      <input id="edit-hostname" name="hostname" autocomplete="off" autocapitalize="off" spellcheck="false" required aria-describedby="edit-suffixes-label">
+      <div class="suffixes" id="edit-suffixes" role="group" aria-labelledby="edit-suffixes-label">
+        <span class="suffixes-label" id="edit-suffixes-label">Ending:</span>
+      </div>
+      <p id="edit-suffix-hint" class="suffix-hint" role="status" hidden></p>
       <label for="edit-address">Address</label>
       <input id="edit-address" name="address" autocomplete="off" autocapitalize="off" spellcheck="false" required>
       <p class="help">Change where the name points, rename it, or both. Nothing else in your hosts file changes.</p>

@@ -3,6 +3,9 @@
 html[lang="ar"] .en,
 html[lang="en"] .ar { display: none !important; }
 
+/* Code is always left-to-right, even inside Arabic text (".localhost", not "localhost."). */
+html[dir="rtl"] code { direction: ltr; unicode-bidi: isolate; }
+
 html[dir="rtl"] body {
   font-family: "Segoe UI", Tahoma, "Geeza Pro", "Noto Naskh Arabic", "Noto Sans Arabic", -apple-system, sans-serif;
   line-height: 1.75;

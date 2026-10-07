@@ -489,3 +489,41 @@ func TestGuideIsServed(t *testing.T) {
 		}
 	}
 }
+
+func TestPauseResumeThroughAPI(t *testing.T) {
+	f := newUIFixture(t)
+	same := authed("Content-Type", "application/json", "Origin", "http://127.0.0.1:"+port(f))
+	f.do("POST", "/api/entries", `{"hostname":"app.local","address":"127.0.0.1:3000"}`, same)
+
+	resp, body := f.do("POST", "/api/entries/app.local/pause", `{}`, same)
+	if resp.StatusCode != http.StatusOK || body["action"] != "paused" {
+		t.Fatalf("pause: %d %v", resp.StatusCode, body)
+	}
+	if strings.Contains(f.hosts.Content(), "app.local") {
+		t.Fatal("paused name is still in the hosts file")
+	}
+	_, body = f.do("GET", "/api/entries", "", same)
+	if e := body["entries"].([]any)[0].(map[string]any); e["status"] != "paused" {
+		t.Fatalf("entry after pause = %v", e)
+	}
+	resp, body = f.do("POST", "/api/entries/app.local/resume", `{}`, same)
+	if resp.StatusCode != http.StatusOK || body["action"] != "resumed" || !strings.Contains(f.hosts.Content(), "app.local") {
+		t.Fatalf("resume: %d %v", resp.StatusCode, body)
+	}
+	if resp, _ := f.do("POST", "/api/entries/nope.local/pause", `{}`, same); resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("pause unknown: %d", resp.StatusCode)
+	}
+	// Like every change, pausing needs the token.
+	if resp, _ := f.do("POST", "/api/entries/app.local/pause", `{}`, map[string]string{"Content-Type": "application/json"}); resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("pause without token: %d", resp.StatusCode)
+	}
+}
+
+func TestStatusListsEndings(t *testing.T) {
+	f := newUIFixture(t)
+	_, body := f.do("GET", "/api/status", "", authed())
+	got, _ := body["local_suffixes"].([]any)
+	if len(got) < 5 || got[0] != "local" {
+		t.Fatalf("local_suffixes = %v", body["local_suffixes"])
+	}
+}

@@ -26,6 +26,7 @@ type Counts struct {
 	Active   int `json:"active"`
 	Missing  int `json:"missing"`
 	Conflict int `json:"conflict"`
+	Paused   int `json:"paused"`
 }
 
 // StatusReport describes the current LocalDNS state.
@@ -83,10 +84,13 @@ func (m *Manager) Status() (StatusReport, error) {
 			r.Counts.Missing++
 		case StatusConflict:
 			r.Counts.Conflict++
+		case StatusPaused:
+			r.Counts.Paused++
 		}
 	}
 	r.Writable = m.checkWritable(true, true) == nil
-	r.Healthy = r.Section != SectionInvalid && r.ConfigError == "" && r.Counts.Active == r.Counts.Total
+	// Paused entries were switched off on purpose; they are not a problem.
+	r.Healthy = r.Section != SectionInvalid && r.ConfigError == "" && r.Counts.Active+r.Counts.Paused == r.Counts.Total
 	return r, nil
 }
 

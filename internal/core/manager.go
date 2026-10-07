@@ -30,6 +30,7 @@ const (
 	StatusActive   Status = "active"   // in the hosts file and effective
 	StatusMissing  Status = "missing"  // known to LocalDNS but missing from the hosts file
 	StatusConflict Status = "conflict" // overridden by an earlier line outside the LocalDNS section
+	StatusPaused   Status = "paused"   // switched off by the user: kept by LocalDNS, not in the hosts file
 )
 
 // Entry is a managed hostname as presented to users and agents.
@@ -50,7 +51,7 @@ type Entry struct {
 // Routable reports whether the port-free router can serve this entry: it
 // has a port and its name resolves to 127.0.0.1, where the router listens.
 func (e Entry) Routable() bool {
-	if e.Port == nil || e.Status == StatusMissing {
+	if e.Port == nil || e.Status == StatusMissing || e.Status == StatusPaused {
 		return false
 	}
 	ip, err := netip.ParseAddr(e.IP)
@@ -68,6 +69,8 @@ const (
 	ActionUpdated   Action = "updated"
 	ActionUnchanged Action = "unchanged"
 	ActionRemoved   Action = "removed"
+	ActionPaused    Action = "paused"
+	ActionResumed   Action = "resumed"
 )
 
 // Result is returned by Add and Remove.
@@ -196,9 +199,15 @@ func entries(st *state) []Entry {
 			continue
 		}
 		ip, _ := netip.ParseAddr(ce.IP)
+		if ce.Paused {
+			e := makeEntry(ce.Hostname, ip, ce.Port, StatusPaused)
+			e.Detail = "paused: left out of the hosts file until you resume it (localdns resume " + ce.Hostname + ")"
+			out = append(out, e)
+			continue
+		}
 		e := makeEntry(ce.Hostname, ip, ce.Port, StatusMissing)
-		e.Detail = "not present in the hosts file; run `localdns add " + ce.Hostname + " " + e.Address +
-			" --force` to restore it or `localdns remove " + ce.Hostname + "` to forget it"
+		e.Detail = "not present in the hosts file; run `localdns resume " + ce.Hostname +
+			"` to restore it or `localdns remove " + ce.Hostname + "` to forget it"
 		out = append(out, e)
 	}
 	return out
@@ -296,6 +305,9 @@ func (m *Manager) Add(hostname, address string, opts AddOptions) (Result, error)
 		return Result{}, invalidInput(err)
 	}
 	if err := validate.LocalIP(ip); err != nil {
+		return Result{}, invalidInput(err)
+	}
+	if err := validate.Mapping(name, ip); err != nil {
 		return Result{}, invalidInput(err)
 	}
 
@@ -405,7 +417,11 @@ func (m *Manager) Edit(hostname, newHostname, address string) (Result, error) {
 			return Result{}, invalidInput(err)
 		}
 	}
-	if name == old && validate.FormatAddress(ip, port) == cur.Address && cur.Status == StatusActive {
+	if err := validate.Mapping(name, ip); err != nil {
+		return Result{}, invalidInput(err)
+	}
+	paused := cur.Status == StatusPaused
+	if name == old && validate.FormatAddress(ip, port) == cur.Address && (cur.Status == StatusActive || paused) {
 		return Result{Action: ActionUnchanged, Entry: cur}, nil
 	}
 
@@ -431,8 +447,9 @@ func (m *Manager) Edit(hostname, newHostname, address string) (Result, error) {
 			replaced = true
 		}
 	}
-	if !replaced {
-		// The line was deleted by hand (status "missing"): restore it.
+	if !replaced && !paused {
+		// The line was deleted by hand (status "missing"): restore it. A
+		// paused entry stays out of the hosts file.
 		list = append(list, hosts.Entry{IP: ip, Hostname: name})
 	}
 	now := m.opts.Now().UTC().Truncate(time.Second)
@@ -441,14 +458,96 @@ func (m *Manager) Edit(hostname, newHostname, address string) (Result, error) {
 		created = ce.CreatedAt
 	}
 	st.cfg.Delete(old)
-	st.cfg.Put(config.Entry{Hostname: name, IP: ip.String(), Port: port, CreatedAt: created, UpdatedAt: now})
+	st.cfg.Put(config.Entry{Hostname: name, IP: ip.String(), Port: port, Paused: paused, CreatedAt: created, UpdatedAt: now})
 	if err := st.doc.SetEntries(list); err != nil {
 		return Result{}, newError(CodeInternal, "", err, "%v", err)
 	}
 	if err := m.commit(st); err != nil {
 		return Result{}, err
 	}
-	return Result{Action: ActionUpdated, Entry: makeEntry(name, ip, port, StatusActive)}, nil
+	status := StatusActive
+	if paused {
+		status = StatusPaused
+	}
+	return Result{Action: ActionUpdated, Entry: makeEntry(name, ip, port, status)}, nil
+}
+
+// Pause switches a managed entry off without forgetting it: its line leaves
+// the hosts file, so the name stops working, and Resume puts it back.
+func (m *Manager) Pause(hostname string) (Result, error) { return m.setPaused(hostname, true) }
+
+// Resume switches a paused entry back on. It also restores an entry whose
+// line was deleted from the hosts file by hand.
+func (m *Manager) Resume(hostname string) (Result, error) { return m.setPaused(hostname, false) }
+
+func (m *Manager) setPaused(hostname string, paused bool) (Result, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	name, err := validate.Hostname(hostname)
+	if err != nil {
+		return Result{}, invalidInput(err)
+	}
+	st, err := m.load()
+	if err != nil {
+		return Result{}, err
+	}
+	cur, err := m.find(st, name)
+	if err != nil {
+		return Result{}, err
+	}
+	ip, err := netip.ParseAddr(cur.IP)
+	if err != nil {
+		return Result{}, newError(CodeInternal, "", err, "invalid stored address %q", cur.IP)
+	}
+	var port uint16
+	if cur.Port != nil {
+		port = *cur.Port
+	}
+
+	list := st.doc.Entries()
+	action := ActionPaused
+	status := StatusPaused
+	if paused {
+		if cur.Status == StatusPaused {
+			return Result{Action: ActionUnchanged, Entry: cur}, nil
+		}
+		var keep []hosts.Entry
+		for _, e := range list {
+			if e.Hostname != name {
+				keep = append(keep, e)
+			}
+		}
+		list = keep
+	} else {
+		action, status = ActionResumed, StatusActive
+		if _, inHosts := st.doc.Entry(name); inHosts {
+			return Result{Action: ActionUnchanged, Entry: cur}, nil
+		}
+		if un := st.doc.Unmanaged(name); len(un) > 0 {
+			return Result{}, newError(CodeConflict,
+				"LocalDNS never edits entries it does not own. Remove that line from "+m.HostsPath()+
+					" yourself, or rename this entry: localdns edit "+name+" --name <new-name>",
+				nil, "%s is now defined on line %d of %s (%s), outside the LocalDNS section",
+				name, un[0].Line, m.HostsPath(), un[0].IP)
+		}
+		list = append(list, hosts.Entry{IP: ip, Hostname: name})
+	}
+
+	now := m.opts.Now().UTC().Truncate(time.Second)
+	ce := config.Entry{Hostname: name, IP: ip.String(), Port: port, CreatedAt: now}
+	if old := st.cfg.Find(name); old != nil {
+		ce = *old
+	}
+	ce.Paused, ce.UpdatedAt = paused, now
+	st.cfg.Put(ce)
+	if err := st.doc.SetEntries(list); err != nil {
+		return Result{}, newError(CodeInternal, "", err, "%v", err)
+	}
+	if err := m.commit(st); err != nil {
+		return Result{}, err
+	}
+	return Result{Action: action, Entry: makeEntry(name, ip, port, status)}, nil
 }
 
 // Remove deletes the managed entry for hostname. Entries outside the
