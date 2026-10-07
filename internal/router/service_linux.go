@@ -4,6 +4,7 @@ package router
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -25,8 +26,8 @@ func systemctl(args ...string) error {
 	return nil
 }
 
-// Enable installs and starts the systemd unit (needs root).
-func Enable(exe string) error {
+// Enable installs (or updates) and starts the systemd unit (needs root).
+func Enable(exe string, env map[string]string) error {
 	if _, err := exec.LookPath("systemctl"); err != nil {
 		return fmt.Errorf("%w: systemd is not available; run `sudo localdns router run` in a terminal instead", ErrUnsupported)
 	}
@@ -37,7 +38,7 @@ func Enable(exe string) error {
 	if user == "root" {
 		user = ""
 	}
-	if err := os.WriteFile(unitPath, []byte(systemdUnit(exe, user)), 0o644); err != nil { //nolint:gosec // G703: fixed path; exe is our own binary
+	if err := os.WriteFile(unitPath, []byte(systemdUnit(exe, user, env)), 0o644); err != nil { //nolint:gosec // G703: fixed path; exe is our own binary
 		return err
 	}
 	if err := systemctl("daemon-reload"); err != nil {
@@ -62,6 +63,9 @@ func Disable() error {
 	_ = systemctl("daemon-reload")
 	return nil
 }
+
+// ServiceLog is a no-op on Linux (systemd captures output in the journal).
+func ServiceLog() io.Writer { return io.Discard }
 
 // WritePID is a no-op on Linux (systemd tracks the process).
 func WritePID() func() { return func() {} }

@@ -199,6 +199,7 @@ func TestOnlyLoopbackUIListens(t *testing.T) {
 	listenFuncs := map[string]bool{
 		"Listen": true, "ListenPacket": true, "ListenUDP": true, "ListenTCP": true, "ListenIP": true,
 		"ListenUnix": true, "ListenMulticastUDP": true, "ListenAndServe": true, "ListenAndServeTLS": true,
+		"FileListener": true, "FilePacketConn": true,
 		"Dial": true, "DialTimeout": true, "DialUDP": true, "DialTCP": true, "LookupHost": true, "LookupIP": true,
 	}
 	var found []string
@@ -238,7 +239,11 @@ func TestOnlyLoopbackUIListens(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"internal/router/router.go: net.Listen", "internal/ui/server.go: net.Listen"}
+	want := []string{
+		"internal/router/router.go: net.Listen",
+		"internal/router/router.go: net.FileListener", // the socket launchd opens on macOS
+		"internal/ui/server.go: net.Listen",
+	}
 	if strings.Join(found, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("unexpected network calls:\n%s\nwant only:\n%s", strings.Join(found, "\n"), strings.Join(want, "\n"))
 	}
@@ -247,6 +252,8 @@ func TestOnlyLoopbackUIListens(t *testing.T) {
 	for _, l := range []struct{ file, call, constant string }{
 		{"internal/ui/server.go", `net.Listen("tcp", net.JoinHostPort(LoopbackAddr,`, `LoopbackAddr = "127.0.0.1"`},
 		{"internal/router/router.go", `net.Listen("tcp", net.JoinHostPort(ListenAddr,`, `const ListenAddr = "127.0.0.1"`},
+		// An inherited socket is refused unless it is bound to loopback.
+		{"internal/router/router.go", `if !isLoopback(ln.Addr()) {`, `ap.Addr().Unmap().IsLoopback()`},
 	} {
 		src, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(l.file)))
 		if err != nil {

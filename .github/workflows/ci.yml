@@ -167,10 +167,46 @@ jobs:
             Stop-Process -Id $srv.Id -ErrorAction SilentlyContinue
           }
 
+  # The port-free router, installed for real as a background service
+  # (launchd on macOS, systemd on Linux, a login item on Windows): a name is
+  # opened through 127.0.0.1:80 without its port, the router must not run as
+  # root, and `router disable` and `uninstall` must remove it. Entries live in
+  # a sandbox; the runner's real hosts file is never touched.
+  router:
+    name: Port-free router (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, macos-15-intel, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - name: Install the service and open http://app.test without a port
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          go build -o "$RUNNER_TEMP/localdns" ./cmd/localdns
+          # The macOS service runs as "nobody", which can't read the runner's
+          # home folder; /tmp is readable by everyone.
+          sandbox="$RUNNER_TEMP/locly-router"
+          if [ "$RUNNER_OS" = macOS ]; then sandbox=/tmp/locly-router; fi
+          bash scripts/router-test.sh "$RUNNER_TEMP/localdns" "$sandbox"
+      - name: Start the router and open http://app.test without a port
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          go build -o "$env:RUNNER_TEMP\localdns.exe" ./cmd/localdns
+          if ($LASTEXITCODE -ne 0) { throw 'build failed' }
+          & ./scripts/router-test.ps1 -Bin "$env:RUNNER_TEMP\localdns.exe" -Sandbox "$env:RUNNER_TEMP\locly-router"
+
   ci-ok:
     name: CI passed
     if: always()
-    needs: [lint, test, build, install]
+    needs: [lint, test, build, install, router]
     runs-on: ubuntu-latest
     steps:
       - name: Check results

@@ -3,7 +3,7 @@ package version
 
 // Version is the LocalDNS release version. Release builds override it with
 // -ldflags "-X github.com/devehab/locly-dns/internal/version.Version=x.y.z".
-var Version = "0.2.0"
+var Version = "0.2.1"
 
 // Commit is the git commit the binary was built from (set by release builds).
 var Commit = ""

@@ -4,6 +4,7 @@ package router
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,14 +32,19 @@ func State() ServiceState {
 }
 
 // Enable starts the router at every login (for the current user, no admin
-// rights needed) and starts it now, without a console window.
-func Enable(exe string) error {
+// rights needed) and starts it now, without a console window. env applies
+// to the router started now (hosts file and config overrides).
+func Enable(exe string, env map[string]string) error {
 	value := `"` + exe + `" router run`
 	if out, err := exec.Command("reg", "add", runKey, "/v", WindowsRunKey, "/t", "REG_SZ", "/d", value, "/f").CombinedOutput(); err != nil {
 		return fmt.Errorf("reg add: %s", strings.TrimSpace(string(out)))
 	}
 	stopRunning()
 	cmd := exec.Command(exe, "router", "run")
+	cmd.Env = os.Environ()
+	for _, k := range sortedKeys(env) {
+		cmd.Env = append(cmd.Env, k+"="+env[k])
+	}
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: createNoWindow | detachedProcess | createNewProcessGroup, HideWindow: true}
 	return cmd.Start()
 }
@@ -62,6 +68,9 @@ func stopRunning() {
 	}
 	_ = os.Remove(pidFile())
 }
+
+// ServiceLog is a no-op on Windows.
+func ServiceLog() io.Writer { return io.Discard }
 
 // WritePID records the running router so Disable can stop it. The returned
 // function removes the record.

@@ -321,7 +321,9 @@ would go to port 80, where your app isn't running. The **LocalDNS router** fills
 
 ```console
 $ localdns router enable
-✓ Router enabled: it starts automatically when you log in
+Only an administrator can let a program use port 80, so LocalDNS asks for
+your password once to install the router service. …
+✓ Router enabled: it starts on its own, also after a restart
 ✓ Port-free URLs are on
 
 Open your names without a port, for example:
@@ -336,21 +338,27 @@ browser → http://app.local → 127.0.0.1:80 (LocalDNS router) → 127.0.0.1:30
 - It forwards only names you added with LocalDNS that point to `127.0.0.1` and have a port.
   Any other name gets a 404 page; it never touches other traffic, DNS, proxy or firewall
   settings. The app sees the original `Host: app.local`, as if you had opened it directly.
-- It runs **as your user, not root**: a LaunchAgent on macOS, a login item on Windows. On
-  Linux it is a systemd service with only the right to use port 80
-  (`CAP_NET_BIND_SERVICE`), so enabling it there asks for `sudo` once.
+- It **never runs as root**, and it starts on its own:
+  - **macOS:** a LaunchDaemon. macOS only lets an administrator open port 80 on
+    `127.0.0.1`, so `launchd` opens that socket and hands it to the router, which runs as
+    the restricted `nobody` user (from a root-owned copy in
+    `/Library/Application Support/LocalDNS`). Enabling it asks for your password once.
+  - **Linux:** a systemd service running as you, with only the right to use port 80
+    (`CAP_NET_BIND_SERVICE`). Enabling it asks for `sudo` once.
+  - **Windows:** a login item for your user; no administrator rights needed.
 - `localdns list`, `add` and the web UI show `http://app.local` when it is on, and the
   `http://app.local:3000` form always keeps working.
 
 | Command                   | What it does                                               |
 | ------------------------- | ---------------------------------------------------------- |
 | `localdns router`         | Is it on? Where is its service file and log?               |
-| `localdns router enable`  | Install it to start at login, and start it now             |
-| `localdns router disable` | Stop it and remove it from login (`uninstall` does too)    |
+| `localdns router enable`  | Install it to start on its own, and start it now           |
+| `localdns router disable` | Stop it and remove it (`uninstall` does too)               |
 | `localdns router run`     | Run it in the foreground instead (`--port 8080` to test)   |
 
 If another program already uses port 80 (a local Apache or nginx, for example), the router
-can't start; `localdns router` and `localdns doctor` say so. Names on other machines
+can't start; `localdns router` and `localdns doctor` say so. After updating LocalDNS, run
+`sudo localdns router enable` again to update the router (the installer does it for you). Names on other machines
 (`ha.local → 192.168.1.60:8123`) keep their port.
 
 ---
@@ -433,7 +441,7 @@ LocalDNS manages local hostname mappings on the machine it is installed on. Noth
   file is elevated, and it exits immediately.
 - ❌ No network listener except two that bind to `127.0.0.1` only: the web UI, while
   `localdns ui` runs, and the optional [port-free router](#port-free-urls) on port 80, which
-  runs as your user (`localdns router disable` removes it).
+  never runs as root (`localdns router disable` removes it).
 - ❌ No outbound network requests from the core. No telemetry. No analytics. No data
   leaves your machine.
 - ❌ No changes to your network router, DNS settings, VPN, proxy or firewall. No traffic
@@ -449,7 +457,10 @@ LocalDNS manages local hostname mappings on the machine it is installed on. Noth
   architecture test that fails if they ever import `net`, `net/http`, `crypto/tls` or
   `os/exec` on any OS.
 - An integration test audits the whole source tree: the only network listeners allowed are
-  the UI's and the router's `net.Listen`, both pinned to `127.0.0.1`.
+  the UI's and the router's, pinned to `127.0.0.1`; a socket handed over by the service
+  manager is refused unless it is bound to loopback.
+- CI installs the real router service on macOS, Linux and Windows, opens a name through it
+  without a port, checks the router process is not root, and removes it again.
 - Tests prove that existing hosts entries survive `add`, `remove`, update and uninstall byte
   for byte, and that unknown domains (`google.com`, `example.com`, …) never appear in the
   hosts file.

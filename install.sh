@@ -10,8 +10,9 @@
 #
 # When you install from your own terminal it also turns on port-free URLs
 # (`localdns router enable`): a small router listening on 127.0.0.1:80 only,
-# so http://app.local opens your app without typing :3000. On macOS it runs as
-# your user (no root). Turn it off any time with `localdns router disable`.
+# so http://app.local opens your app without typing :3000. It never runs as
+# root; installing it asks for your password once. Turn it off any time with
+# `localdns router disable`.
 #
 # Environment variables:
 #   LOCALDNS_VERSION      version tag to install, e.g. v0.1.0 (default: latest)

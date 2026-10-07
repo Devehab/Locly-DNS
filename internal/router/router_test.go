@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -174,21 +175,74 @@ func TestShortURL(t *testing.T) {
 }
 
 func TestServiceDefinitions(t *testing.T) {
-	plist := launchdPlist("/usr/local/bin/local&dns", "/Users/me/Library/Logs/localdns-router.log")
-	for _, want := range []string{"<string>dev.locly.router</string>", "<string>/usr/local/bin/local&amp;dns</string>",
-		"<string>router</string>", "<string>run</string>", "<key>RunAtLoad</key>"} {
+	plist := launchdPlist("/Library/Application Support/LocalDNS/local&dns", map[string]string{"LOCALDNS_HOSTS_FILE": "/tmp/a<b"})
+	for _, want := range []string{
+		"<string>dev.locly.router</string>",
+		"<string>/Library/Application Support/LocalDNS/local&amp;dns</string>",
+		"<string>router</string>", "<string>run</string>",
+		// Never root: launchd opens the socket and runs the router as nobody.
+		"<key>UserName</key>\n  <string>nobody</string>",
+		"<key>SockNodeName</key>\n      <string>127.0.0.1</string>",
+		"<key>SockServiceName</key>\n      <string>80</string>",
+		"<key>inetdCompatibility</key>\n  <dict>\n    <key>Wait</key>\n    <true/>",
+		"<key>LOCALDNS_ROUTER_FD</key>\n    <string>0</string>",
+		"<key>LOCALDNS_HOSTS_FILE</key>\n    <string>/tmp/a&lt;b</string>",
+	} {
 		if !strings.Contains(plist, want) {
-			t.Errorf("plist missing %q", want)
+			t.Errorf("plist missing %q\n%s", want, plist)
 		}
 	}
-	unit := systemdUnit("/usr/local/bin/localdns", "me")
+	if strings.Contains(plist, "root") {
+		t.Error("plist mentions root")
+	}
+
+	unit := systemdUnit("/usr/local/bin/localdns", "me", map[string]string{"LOCALDNS_CONFIG_DIR": `/tmp/50% "x"`})
 	for _, want := range []string{`ExecStart="/usr/local/bin/localdns" router run`, "User=me",
+		`Environment="LOCALDNS_CONFIG_DIR=/tmp/50%% \"x\""`,
 		"AmbientCapabilities=CAP_NET_BIND_SERVICE", "NoNewPrivileges=yes"} {
 		if !strings.Contains(unit, want) {
-			t.Errorf("unit missing %q", want)
+			t.Errorf("unit missing %q\n%s", want, unit)
 		}
 	}
-	if !strings.Contains(systemdUnit("/x", ""), "DynamicUser=yes") {
+	if !strings.Contains(systemdUnit("/x", "", nil), "DynamicUser=yes") {
 		t.Error("unit without a user should use DynamicUser")
+	}
+}
+
+func TestInheritedListener(t *testing.T) {
+	ln, err := Listen(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = ln.Close() }()
+	f, err := ln.(*net.TCPListener).File()
+	if err != nil {
+		t.Skipf("no socket files here: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	got, err := InheritedListener(strconv.Itoa(int(f.Fd())))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = got.Close() }()
+	if got.Addr().String() != ln.Addr().String() {
+		t.Fatalf("inherited %s, want %s", got.Addr(), ln.Addr())
+	}
+	for _, bad := range []string{"", "x", "-1"} {
+		if _, err := InheritedListener(bad); err == nil {
+			t.Errorf("InheritedListener(%q) should fail", bad)
+		}
+	}
+}
+
+func TestOnlyLoopbackAddressesAreServed(t *testing.T) {
+	for addr, want := range map[string]bool{
+		"127.0.0.1:80": true, "[::1]:80": true, "0.0.0.0:80": false, "192.168.1.5:80": false, "[::]:80": false,
+	} {
+		ap := netip.MustParseAddrPort(addr)
+		if got := isLoopback(net.TCPAddrFromAddrPort(ap)); got != want {
+			t.Errorf("isLoopback(%s) = %v, want %v", addr, got, want)
+		}
 	}
 }

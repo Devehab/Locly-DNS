@@ -150,9 +150,11 @@ func init() {
 				"127.0.0.1:80 (this machine only) and forwards each of your names to its\n" +
 				"port, so http://app.local opens 127.0.0.1:3000. It serves only names you\n" +
 				"added; other traffic, DNS and proxy settings are never touched.\n\n" +
-				"enable runs it in the background at login (macOS: your user, not root;\n" +
-				"Linux: an unprivileged systemd service), disable removes it, run keeps it\n" +
-				"in the foreground.",
+				"enable installs it as a background service that starts on its own and\n" +
+				"never runs as root (macOS: launchd opens the port and runs the router as\n" +
+				"\"nobody\"; Linux: a systemd service as you; Windows: a login item). It asks\n" +
+				"for your password once on macOS and Linux. disable removes it, run keeps it\n" +
+				"in the foreground instead.",
 			args:     [][2]string{{"action", "status (default), enable, disable or run"}},
 			flags:    []int{flagRouterPort, flagNoElevate},
 			examples: []string{"localdns router enable", "localdns router", "localdns router disable", "localdns router run"},

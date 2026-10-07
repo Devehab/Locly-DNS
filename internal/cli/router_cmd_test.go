@@ -5,36 +5,47 @@ import (
 	"testing"
 
 	"github.com/devehab/locly-dns/internal/router"
+	"github.com/devehab/locly-dns/internal/version"
 )
 
 type fakeRouter struct {
-	installed, running bool
-	enableErr          error
-	enabled, disabled  int
-	exe                string
+	installed, outdated, running bool
+	version                      string // of the running router; default: this version
+	enableErr                    error
+	enabled, disabled            int
+	exe                          string
+	env                          map[string]string
 }
 
 func (f *fakeRouter) State() router.ServiceState {
-	return router.ServiceState{Installed: f.installed, Kind: "launchd", Path: "/tmp/dev.locly.router.plist"}
+	return router.ServiceState{Installed: f.installed, Outdated: f.outdated, Kind: "launchd", Path: "/tmp/dev.locly.router.plist"}
 }
 
-func (f *fakeRouter) Enable(exe string) error {
+func (f *fakeRouter) Enable(exe string, env map[string]string) error {
 	if f.enableErr != nil {
 		return f.enableErr
 	}
 	f.enabled++
-	f.exe = exe
-	f.installed, f.running = true, true
+	f.exe, f.env = exe, env
+	f.installed, f.outdated, f.running = true, false, true
 	return nil
 }
 
 func (f *fakeRouter) Disable() error {
 	f.disabled++
-	f.installed, f.running = false, false
+	f.installed, f.outdated, f.running = false, false, false
 	return nil
 }
 
-func (f *fakeRouter) Running() bool { return f.running }
+func (f *fakeRouter) Running() (bool, string) {
+	if !f.running {
+		return false, ""
+	}
+	if f.version != "" {
+		return true, f.version
+	}
+	return true, version.Version
+}
 
 func withRouter(r RouterControl) runOpt { return func(e *Env) { e.Router = r } }
 
@@ -52,6 +63,10 @@ func TestPortFreeURLs(t *testing.T) {
 	r = h.run([]string{"router", "enable"}, withRouter(fr))
 	if r.code != 0 || fr.enabled != 1 || fr.exe != h.exe || !strings.Contains(r.stdout, "Port-free URLs are on") {
 		t.Fatalf("router enable: %+v (enabled %d, exe %q)", r, fr.enabled, fr.exe)
+	}
+	// The service serves the same hosts file and config as this command.
+	if fr.env["LOCALDNS_HOSTS_FILE"] != h.hosts.Path() || fr.env["LOCALDNS_CONFIG_DIR"] != h.configDir {
+		t.Fatalf("router enable passed env %v", fr.env)
 	}
 
 	// On: names on 127.0.0.1 with a port get a port-free URL.
@@ -97,6 +112,30 @@ func TestPortFreeURLs(t *testing.T) {
 	r = h.run([]string{"uninstall", "--yes", "--json"}, withRouter(fr))
 	if v := r.json(t); r.code != 0 || v["router_removed"] != true || fr.disabled != 1 {
 		t.Fatalf("uninstall: %+v", r)
+	}
+}
+
+func TestRouterStatusExplainsProblems(t *testing.T) {
+	h := newHarness(t)
+
+	r := h.run([]string{"router"}, withRouter(&fakeRouter{installed: true, outdated: true}))
+	if r.code != 0 || !strings.Contains(r.stdout, "sudo localdns router enable") || !strings.Contains(r.stdout, "0.2.0") {
+		t.Fatalf("outdated router:\n%s", r.stdout)
+	}
+	v := h.run([]string{"doctor", "--json", "--port", "0"}, withRouter(&fakeRouter{installed: true, outdated: true})).json(t)
+	checks := v["checks"].([]any)
+	if last := checks[len(checks)-1].(map[string]any); last["status"] != "warn" || last["fix"] != "sudo localdns router enable" {
+		t.Fatalf("doctor with outdated router: %v", last)
+	}
+
+	r = h.run([]string{"router"}, withRouter(&fakeRouter{installed: true, running: true, version: "0.0.1"}))
+	if !strings.Contains(r.stdout, "0.0.1 (this localdns is") || !strings.Contains(r.stdout, "Update the router") {
+		t.Fatalf("old running router:\n%s", r.stdout)
+	}
+
+	r = h.run([]string{"router", "--json"}, withRouter(&fakeRouter{installed: true, running: true}))
+	if v := r.json(t); v["running"] != true || v["version"] != version.Version || v["installed"] != true {
+		t.Fatalf("router --json = %v", v)
 	}
 }
 

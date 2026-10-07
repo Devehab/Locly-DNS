@@ -21,7 +21,8 @@ forwards the names it manages to their ports. Issues we especially want to hear 
 - Any network listener other than the loopback UI and loopback router, any way to make the
   router forward to a name or address LocalDNS does not manage, or any outbound network
   traffic from the core.
-- Privilege escalation through the `sudo` re-execution or the installer.
+- Privilege escalation through the `sudo` re-execution, the installer, or the router service
+  (the macOS LaunchDaemon must only ever run the router as `nobody`, from a root-owned copy).
 
 ## Design guarantees
 

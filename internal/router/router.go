@@ -19,6 +19,7 @@ import (
 	"net/http/httputil"
 	"net/netip"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -178,6 +179,39 @@ func stripTags(s string) string {
 // Listen opens the router's listener on 127.0.0.1.
 func Listen(port int) (net.Listener, error) {
 	return net.Listen("tcp", net.JoinHostPort(ListenAddr, strconv.Itoa(port)))
+}
+
+// EnvListenFD names a file descriptor the router inherits already listening.
+// On macOS launchd opens 127.0.0.1:80 and passes it as descriptor 0.
+const EnvListenFD = "LOCALDNS_ROUTER_FD"
+
+// InheritedListener returns the listening socket on file descriptor fd. It
+// refuses a socket that isn't bound to the loopback interface, so a
+// misconfigured service can never expose the router to the network.
+func InheritedListener(fd string) (net.Listener, error) {
+	n, err := strconv.Atoi(fd)
+	if err != nil || n < 0 {
+		return nil, fmt.Errorf("invalid %s=%q", EnvListenFD, fd)
+	}
+	f := os.NewFile(uintptr(n), "inherited-listener")
+	if f == nil {
+		return nil, fmt.Errorf("%s=%d is not an open file", EnvListenFD, n)
+	}
+	defer func() { _ = f.Close() }()
+	ln, err := net.FileListener(f)
+	if err != nil {
+		return nil, fmt.Errorf("%s=%d is not a listening socket: %w", EnvListenFD, n, err)
+	}
+	if !isLoopback(ln.Addr()) {
+		_ = ln.Close()
+		return nil, fmt.Errorf("refusing to serve on %s: the router only listens on %s", ln.Addr(), ListenAddr)
+	}
+	return ln, nil
+}
+
+func isLoopback(addr net.Addr) bool {
+	ap, err := netip.ParseAddrPort(addr.String())
+	return err == nil && ap.Addr().Unmap().IsLoopback()
 }
 
 // Serve runs the router on ln until ctx is canceled.
