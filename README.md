@@ -481,6 +481,7 @@ internal/elevate/      one-shot sudo re-execution
 test/integration/      CLI + UI + core together; security audits
 test/cli/              black-box tests of the built binary
 tools/release/         cross-compile and package release archives
+tools/motion/          render the landing-page story animation to MP4
 scripts/smoke-test.*   post-install end-to-end check (used by CI)
 docs/                  bilingual (English/Arabic) landing page for GitHub Pages
 ```
@@ -499,7 +500,8 @@ docs/                  bilingual (English/Arabic) landing page for GitHub Pages
 
 **Website:** `docs/` is a static, dependency-free landing page in English and Arabic
 (language switch with full right-to-left layout, light/dark themes, self-hosted fonts, no
-trackers). To publish it, open **Settings → Pages**, choose **Deploy from a branch**, and
+trackers), including a ~35-second story animation ("Remember names, not numbers") that
+`tools/motion/` can export to MP4 for social media. To publish it, open **Settings → Pages**, choose **Deploy from a branch**, and
 select `main` and the `/docs` folder. Preview it locally with
 `go run ./tools/serve -dir docs -port 8080` and open `http://127.0.0.1:8080`.
 
